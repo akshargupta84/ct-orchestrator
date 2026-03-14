@@ -1,0 +1,52 @@
+{
+  "id": "PIXEL_9A_Q1_2025",
+  "campaign": {
+    "id": "PIXEL_9A_Q1_2025",
+    "name": "Pixel 9a Launch Campaign",
+    "brand": {
+      "name": "Pixel"
+    },
+    "product": "Pixel 9a",
+    "budget": 28000000,
+    "quarter": "Q1",
+    "year": 2025,
+    "start_date": "2025-01-20"
+  },
+  "primary_kpi": "awareness",
+  "secondary_kpis": [
+    "consideration",
+    "purchase_intent"
+  ],
+  "hypothesis": "Business-ready messaging will expand audience beyond typical Pixel buyer",
+  "creatives": [
+    {
+      "creative_id": "PIX9A_001",
+      "filename": "Google Pixel 9a\uff1a Google Powered, Business Ready.mp4",
+      "creative_name": "Pixel 9a - Business Ready",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX9A_002",
+      "filename": "Meet Google Pixel 9a With Gemini \uff5c Magic, Made Simple.mp4",
+      "creative_name": "Pixel 9a - Magic Made Simple",
+      "duration_seconds": 45,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX9A_003",
+      "filename": "Let Gemini on #Pixel9a transform your to-dos into to-dones..mp4",
+      "creative_name": "Pixel 9a - To-Dos to To-Dones",
+      "duration_seconds": 15,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T20:55:08.764619",
+  "_meta": {
+    "plan_id": "PIXEL_9A_Q1_2025_20260205_205508",
+    "campaign_id": "PIXEL_9A_Q1_2025",
+    "saved_at": "2026-02-05T20:55:08.764631",
+    "is_approved": true
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "campaign_id": "GEMINI_OLYMPICS_Q3_2024",
+  "campaign_name": "Gemini Olympics Campaign",
+  "plan_id": "GEMINI_OLYMPICS_Q3_2024",
+  "test_date": "2024-07-25",
+  "test_vendor": "YouGov",
+  "results": [
+    {
+      "creative_id": "GEM_006",
+      "creative_name": "Gemini - Dear Sydney Olympics",
+      "passed": false,
+      "awareness_lift_pct": 4.3,
+      "awareness_significant": false,
+      "consideration_lift_pct": 2.7,
+      "consideration_significant": false,
+      "ad_recall_lift_pct": 8.3,
+      "ad_recall_significant": true,
+      "brand_recall_score": 65.0,
+      "message_clarity_score": 52.0,
+      "emotional_resonance_score": 85.0,
+      "attention_score": 72.0,
+      "uniqueness_score": 78.0,
+      "primary_kpi_lift": 4.3,
+      "primary_kpi_stat_sig": false
+    }
+  ],
+  "campaign": {
+    "id": "GEMINI_OLYMPICS_Q3_2024",
+    "name": "Gemini Olympics Campaign",
+    "brand": {
+      "name": "Gemini"
+    },
+    "product": "Gemini",
+    "quarter": "Q3",
+    "year": 2024
+  },
+  "total_creatives_tested": 1,
+  "creatives_passed": 0,
+  "pass_rate": 0.0,
+  "_meta": {
+    "results_id": "GEMINI_OLYMPICS_Q3_2024_20260205_211841",
+    "campaign_id": "GEMINI_OLYMPICS_Q3_2024",
+    "saved_at": "2026-02-05T21:18:41.687410",
+    "has_raw_csv": true
+  }
+}

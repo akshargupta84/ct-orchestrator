@@ -1,0 +1,82 @@
+{
+  "campaign_id": "PIXEL_7_Q1_2023",
+  "campaign_name": "Pixel 7 Business & Design Campaign",
+  "plan_id": "PIXEL_7_Q1_2023",
+  "test_date": "2023-02-10",
+  "test_vendor": "Kantar",
+  "results": [
+    {
+      "creative_id": "PIX7B_001",
+      "creative_name": "Pixel 7 - Design Story",
+      "passed": false,
+      "awareness_lift_pct": 4.6,
+      "awareness_significant": false,
+      "consideration_lift_pct": 3.7,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 4.1,
+      "ad_recall_significant": true,
+      "brand_recall_score": 75.0,
+      "message_clarity_score": 70.0,
+      "emotional_resonance_score": 68.0,
+      "attention_score": 78.0,
+      "uniqueness_score": 85.0,
+      "primary_kpi_lift": 4.6,
+      "primary_kpi_stat_sig": false
+    },
+    {
+      "creative_id": "PIX7B_002",
+      "creative_name": "Pixel 7 - Built for Business",
+      "passed": true,
+      "awareness_lift_pct": 6.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 6.3,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 5.4,
+      "ad_recall_significant": true,
+      "brand_recall_score": 72.0,
+      "message_clarity_score": 78.0,
+      "emotional_resonance_score": 52.0,
+      "attention_score": 70.0,
+      "uniqueness_score": 62.0,
+      "primary_kpi_lift": 6.3,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "PIX7B_003",
+      "creative_name": "Made by Google 2022 Event Highlight",
+      "passed": false,
+      "awareness_lift_pct": 2.3,
+      "awareness_significant": false,
+      "consideration_lift_pct": 1.3,
+      "consideration_significant": false,
+      "ad_recall_lift_pct": 2.1,
+      "ad_recall_significant": false,
+      "brand_recall_score": 58.0,
+      "message_clarity_score": 52.0,
+      "emotional_resonance_score": 45.0,
+      "attention_score": 48.0,
+      "uniqueness_score": 55.0,
+      "primary_kpi_lift": 2.3,
+      "primary_kpi_stat_sig": false
+    }
+  ],
+  "campaign": {
+    "id": "PIXEL_7_Q1_2023",
+    "name": "Pixel 7 Business & Design Campaign",
+    "brand": {
+      "name": "Pixel"
+    },
+    "product": "Pixel 7",
+    "quarter": "Q1",
+    "year": 2023
+  },
+  "total_creatives_tested": 3,
+  "creatives_passed": 1,
+  "pass_rate": 0.3333333333333333,
+  "_meta": {
+    "results_id": "PIXEL_7_Q1_2023_20260205_200207",
+    "campaign_id": "PIXEL_7_Q1_2023",
+    "saved_at": "2026-02-05T20:02:07.819704",
+    "has_raw_csv": true
+  }
+}

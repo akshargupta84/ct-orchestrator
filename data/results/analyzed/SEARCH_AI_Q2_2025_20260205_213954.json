@@ -1,0 +1,82 @@
+{
+  "campaign_id": "SEARCH_AI_Q2_2025",
+  "campaign_name": "AI Mode Launch Campaign",
+  "plan_id": "SEARCH_AI_Q2_2025",
+  "test_date": "2025-04-15",
+  "test_vendor": "YouGov",
+  "results": [
+    {
+      "creative_id": "SRCH_003",
+      "creative_name": "AI Mode - US Launch",
+      "passed": true,
+      "awareness_lift_pct": 5.7,
+      "awareness_significant": true,
+      "consideration_lift_pct": 5.3,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 4.7,
+      "ad_recall_significant": true,
+      "brand_recall_score": 78.0,
+      "message_clarity_score": 80.0,
+      "emotional_resonance_score": 58.0,
+      "attention_score": 75.0,
+      "uniqueness_score": 72.0,
+      "primary_kpi_lift": 5.7,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "SRCH_004",
+      "creative_name": "AI Mode - Introduction",
+      "passed": true,
+      "awareness_lift_pct": 7.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 7.3,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 7.3,
+      "ad_recall_significant": true,
+      "brand_recall_score": 82.0,
+      "message_clarity_score": 85.0,
+      "emotional_resonance_score": 65.0,
+      "attention_score": 80.0,
+      "uniqueness_score": 78.0,
+      "primary_kpi_lift": 7.3,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "SRCH_005",
+      "creative_name": "Google AI - Shopping Made Easy",
+      "passed": false,
+      "awareness_lift_pct": 4.0,
+      "awareness_significant": false,
+      "consideration_lift_pct": 3.0,
+      "consideration_significant": false,
+      "ad_recall_lift_pct": 3.0,
+      "ad_recall_significant": false,
+      "brand_recall_score": 70.0,
+      "message_clarity_score": 72.0,
+      "emotional_resonance_score": 55.0,
+      "attention_score": 68.0,
+      "uniqueness_score": 65.0,
+      "primary_kpi_lift": 4.0,
+      "primary_kpi_stat_sig": false
+    }
+  ],
+  "campaign": {
+    "id": "SEARCH_AI_Q2_2025",
+    "name": "AI Mode Launch Campaign",
+    "brand": {
+      "name": "Google Search"
+    },
+    "product": "AI Mode",
+    "quarter": "Q2",
+    "year": 2025
+  },
+  "total_creatives_tested": 3,
+  "creatives_passed": 2,
+  "pass_rate": 0.6666666666666666,
+  "_meta": {
+    "results_id": "SEARCH_AI_Q2_2025_20260205_213954",
+    "campaign_id": "SEARCH_AI_Q2_2025",
+    "saved_at": "2026-02-05T21:39:54.909502",
+    "has_raw_csv": true
+  }
+}

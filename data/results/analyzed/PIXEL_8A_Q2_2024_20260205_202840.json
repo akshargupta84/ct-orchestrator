@@ -1,0 +1,100 @@
+{
+  "campaign_id": "PIXEL_8A_Q2_2024",
+  "campaign_name": "Pixel 8a Mid-Range Launch",
+  "plan_id": "PIXEL_8A_Q2_2024",
+  "test_date": "2024-05-15",
+  "test_vendor": "YouGov",
+  "results": [
+    {
+      "creative_id": "PIX8A_001",
+      "creative_name": "Pixel 8a - Introduction",
+      "passed": true,
+      "awareness_lift_pct": 6.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 5.3,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 4.4,
+      "ad_recall_significant": true,
+      "brand_recall_score": 70.0,
+      "message_clarity_score": 68.0,
+      "emotional_resonance_score": 58.0,
+      "attention_score": 72.0,
+      "uniqueness_score": 65.0,
+      "primary_kpi_lift": 6.3,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "PIX8A_002",
+      "creative_name": "Pixel 8a - Joined the Chat",
+      "passed": true,
+      "awareness_lift_pct": 7.7,
+      "awareness_significant": true,
+      "consideration_lift_pct": 6.6,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 8.7,
+      "ad_recall_significant": true,
+      "brand_recall_score": 75.0,
+      "message_clarity_score": 62.0,
+      "emotional_resonance_score": 70.0,
+      "attention_score": 85.0,
+      "uniqueness_score": 78.0,
+      "primary_kpi_lift": 7.7,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "PIX8A_003",
+      "creative_name": "Pixel 8a - Audio Magic Eraser",
+      "passed": false,
+      "awareness_lift_pct": 4.6,
+      "awareness_significant": false,
+      "consideration_lift_pct": 3.6,
+      "consideration_significant": false,
+      "ad_recall_lift_pct": 3.4,
+      "ad_recall_significant": false,
+      "brand_recall_score": 68.0,
+      "message_clarity_score": 72.0,
+      "emotional_resonance_score": 52.0,
+      "attention_score": 65.0,
+      "uniqueness_score": 70.0,
+      "primary_kpi_lift": 4.6,
+      "primary_kpi_stat_sig": false
+    },
+    {
+      "creative_id": "PIX8A_004",
+      "creative_name": "Pixel 8a - Design Story",
+      "passed": false,
+      "awareness_lift_pct": 4.0,
+      "awareness_significant": false,
+      "consideration_lift_pct": 2.6,
+      "consideration_significant": false,
+      "ad_recall_lift_pct": 2.7,
+      "ad_recall_significant": false,
+      "brand_recall_score": 72.0,
+      "message_clarity_score": 65.0,
+      "emotional_resonance_score": 62.0,
+      "attention_score": 58.0,
+      "uniqueness_score": 80.0,
+      "primary_kpi_lift": 4.0,
+      "primary_kpi_stat_sig": false
+    }
+  ],
+  "campaign": {
+    "id": "PIXEL_8A_Q2_2024",
+    "name": "Pixel 8a Mid-Range Launch",
+    "brand": {
+      "name": "Pixel"
+    },
+    "product": "Pixel 8a",
+    "quarter": "Q2",
+    "year": 2024
+  },
+  "total_creatives_tested": 4,
+  "creatives_passed": 2,
+  "pass_rate": 0.5,
+  "_meta": {
+    "results_id": "PIXEL_8A_Q2_2024_20260205_202840",
+    "campaign_id": "PIXEL_8A_Q2_2024",
+    "saved_at": "2026-02-05T20:28:40.539763",
+    "has_raw_csv": true
+  }
+}

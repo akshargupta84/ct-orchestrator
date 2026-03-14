@@ -1,0 +1,59 @@
+{
+  "id": "PIXEL_8A_Q2_2024",
+  "campaign": {
+    "id": "PIXEL_8A_Q2_2024",
+    "name": "Pixel 8a Mid-Range Launch",
+    "brand": {
+      "name": "Pixel"
+    },
+    "product": "Pixel 8a",
+    "budget": 30000000,
+    "quarter": "Q2",
+    "year": 2024,
+    "start_date": "2024-05-15"
+  },
+  "primary_kpi": "awareness",
+  "secondary_kpis": [
+    "consideration",
+    "purchase_intent"
+  ],
+  "hypothesis": "Humor-based creative (#BestPhonesForever) will drive higher engagement than product demo ads",
+  "creatives": [
+    {
+      "creative_id": "PIX8A_001",
+      "filename": "Introducing Google Pixel 8a.mp4",
+      "creative_name": "Pixel 8a - Introduction",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX8A_002",
+      "filename": "#Pixel8a has joined the chat.mp4",
+      "creative_name": "Pixel 8a - Joined the Chat",
+      "duration_seconds": 15,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX8A_003",
+      "filename": "Audio Magic Eraser on Google Pixel 8a.mp4",
+      "creative_name": "Pixel 8a - Audio Magic Eraser",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX8A_004",
+      "filename": "The Design of Google Pixel 8a.mp4",
+      "creative_name": "Pixel 8a - Design Story",
+      "duration_seconds": 45,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T20:18:03.918189",
+  "_meta": {
+    "plan_id": "PIXEL_8A_Q2_2024_20260205_201803",
+    "campaign_id": "PIXEL_8A_Q2_2024",
+    "saved_at": "2026-02-05T20:18:03.918199",
+    "is_approved": true
+  }
+}

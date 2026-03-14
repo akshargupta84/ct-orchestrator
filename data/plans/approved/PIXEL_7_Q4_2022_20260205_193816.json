@@ -1,0 +1,73 @@
+{
+  "id": "PIXEL_7_Q4_2022",
+  "campaign": {
+    "id": "PIXEL_7_Q4_2022",
+    "name": "Pixel 7 Launch Campaign",
+    "brand": {
+      "name": "Pixel"
+    },
+    "product": "Pixel 7",
+    "budget": 45000000,
+    "quarter": "Q4",
+    "year": 2022,
+    "start_date": "2022-10-15"
+  },
+  "primary_kpi": "awareness",
+  "secondary_kpis": [
+    "consideration",
+    "ad_recall"
+  ],
+  "hypothesis": "New Pixel 7 launch creative featuring celebrity endorsements will drive higher awareness than product-focused ads",
+  "creatives": [
+    {
+      "creative_id": "PIX7_001",
+      "filename": "Google Pixel 7 \uff5c Meet the Pixel 7 and Pixel 7 Pro.mp4",
+      "creative_name": "Pixel 7 - Meet the Pixel 7 and 7 Pro",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX7_002",
+      "filename": "Google Pixel 7 & 7 Pro Commercial 2022 Candace Parker, Kelsey Plum, Taylor Rooks, Simu Liu Ad Review.mp4",
+      "creative_name": "Pixel 7 - Celebrity Endorsement",
+      "duration_seconds": 60,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX7_003",
+      "filename": "Google Pixel 7 Commercial The Beautiful Game Belongs to All of Us.mp4",
+      "creative_name": "Pixel 7 - Beautiful Game World Cup",
+      "duration_seconds": 60,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX7_004",
+      "filename": "GOOGLE PIXEL 7 OFFICIAL TRAILER AD COMMERCIAL.mp4",
+      "creative_name": "Pixel 7 - Official Trailer",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX7_005",
+      "filename": "Get Ready for Google Pixel 7\uff1a A Phone That Gives You More.mp4",
+      "creative_name": "Pixel 7 - Phone That Gives More",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX7_006",
+      "filename": "Meet Pixel 7 & Pixel 7 Pro\uff1a Google's Most Advanced Phones.mp4",
+      "creative_name": "Pixel 7 - Most Advanced Phones",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T19:38:16.301278",
+  "_meta": {
+    "plan_id": "PIXEL_7_Q4_2022_20260205_193816",
+    "campaign_id": "PIXEL_7_Q4_2022",
+    "saved_at": "2026-02-05T19:38:16.301299",
+    "is_approved": true
+  }
+}

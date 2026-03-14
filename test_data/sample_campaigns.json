@@ -1,0 +1,84 @@
+{
+  "campaigns": [
+    {
+      "id": "camp_001",
+      "name": "Q1 Brand Awareness Push",
+      "brand": {
+        "id": "brand_freshbite",
+        "name": "FreshBite Snacks",
+        "category": "CPG - Food"
+      },
+      "budget": 3000000,
+      "start_date": "2025-03-01",
+      "end_date": "2025-05-31",
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration", "ad_recall"],
+      "channels": ["digital_video", "social", "display"],
+      "notes": "Small campaign - should allow 2 videos, 5 display max"
+    },
+    {
+      "id": "camp_002",
+      "name": "Summer Product Launch",
+      "brand": {
+        "id": "brand_techflow",
+        "name": "TechFlow Electronics",
+        "category": "Consumer Electronics"
+      },
+      "budget": 15000000,
+      "start_date": "2025-06-01",
+      "end_date": "2025-08-31",
+      "primary_kpi": "consideration",
+      "secondary_kpis": ["awareness", "purchase_intent"],
+      "channels": ["tv", "digital_video", "display", "social"],
+      "notes": "Medium campaign - should allow 8 videos, 15 display max"
+    },
+    {
+      "id": "camp_003",
+      "name": "Holiday Mega Campaign",
+      "brand": {
+        "id": "brand_luxestyle",
+        "name": "LuxeStyle Fashion",
+        "category": "Retail - Apparel"
+      },
+      "budget": 75000000,
+      "start_date": "2025-11-01",
+      "end_date": "2025-12-31",
+      "primary_kpi": "purchase_intent",
+      "secondary_kpis": ["awareness", "consideration", "preference"],
+      "channels": ["tv", "digital_video", "display", "social", "audio"],
+      "notes": "Large campaign - should allow 15 videos, 30 display max"
+    },
+    {
+      "id": "camp_004",
+      "name": "Back to School 2025",
+      "brand": {
+        "id": "brand_studymate",
+        "name": "StudyMate Supplies",
+        "category": "Retail - Office/School"
+      },
+      "budget": 8000000,
+      "start_date": "2025-07-15",
+      "end_date": "2025-09-15",
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration"],
+      "channels": ["digital_video", "social", "display"],
+      "notes": "Medium-small campaign at $5M-$35M tier"
+    },
+    {
+      "id": "camp_005",
+      "name": "New Year New You",
+      "brand": {
+        "id": "brand_fitlife",
+        "name": "FitLife Wellness",
+        "category": "Health & Fitness"
+      },
+      "budget": 45000000,
+      "start_date": "2025-01-01",
+      "end_date": "2025-03-31",
+      "primary_kpi": "consideration",
+      "secondary_kpis": ["awareness", "brand_favorability"],
+      "channels": ["tv", "digital_video", "display", "audio"],
+      "notes": "Large campaign at $35M-$100M tier"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "id": "GEMINI_2025_Q1_2025",
+  "campaign": {
+    "id": "GEMINI_2025_Q1_2025",
+    "name": "Gemini 2025 Campaign",
+    "brand": {
+      "name": "Gemini"
+    },
+    "product": "Gemini",
+    "budget": 75000000,
+    "quarter": "Q1",
+    "year": 2025,
+    "start_date": "2025-02-01"
+  },
+  "primary_kpi": "awareness",
+  "secondary_kpis": [
+    "consideration",
+    "ad_recall"
+  ],
+  "hypothesis": "Super Bowl placement with dream job narrative will drive record awareness",
+  "creatives": [
+    {
+      "creative_id": "GEM_007",
+      "filename": "Dream Job \uff5c Google Pixel SB Commercial 2025.mp4",
+      "creative_name": "Gemini - Dream Job Super Bowl",
+      "duration_seconds": 60,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "GEM_008",
+      "filename": "Veo 3 in Gemini is now in the UK.mp4",
+      "creative_name": "Gemini - Veo 3 UK Launch",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "GEM_009",
+      "filename": "Google Gemini Craziest Fan Contest \uff5c T20 World cup 2026.mp4",
+      "creative_name": "Gemini - T20 World Cup Contest",
+      "duration_seconds": 45,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T21:18:41.688104",
+  "_meta": {
+    "plan_id": "GEMINI_2025_Q1_2025_20260205_211841",
+    "campaign_id": "GEMINI_2025_Q1_2025",
+    "saved_at": "2026-02-05T21:18:41.688116",
+    "is_approved": true
+  }
+}

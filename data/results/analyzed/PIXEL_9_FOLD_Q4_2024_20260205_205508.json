@@ -1,0 +1,82 @@
+{
+  "campaign_id": "PIXEL_9_FOLD_Q4_2024",
+  "campaign_name": "Pixel 9 Pro Fold Launch",
+  "plan_id": "PIXEL_9_FOLD_Q4_2024",
+  "test_date": "2024-09-15",
+  "test_vendor": "YouGov",
+  "results": [
+    {
+      "creative_id": "FOLD_001",
+      "creative_name": "Pixel 9 Pro Fold - Introduction",
+      "passed": true,
+      "awareness_lift_pct": 6.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 5.3,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 4.4,
+      "ad_recall_significant": true,
+      "brand_recall_score": 75.0,
+      "message_clarity_score": 72.0,
+      "emotional_resonance_score": 65.0,
+      "attention_score": 78.0,
+      "uniqueness_score": 82.0,
+      "primary_kpi_lift": 6.3,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "FOLD_002",
+      "creative_name": "Pixel 9 Pro Fold - Multitasking",
+      "passed": true,
+      "awareness_lift_pct": 7.7,
+      "awareness_significant": true,
+      "consideration_lift_pct": 6.6,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 6.7,
+      "ad_recall_significant": true,
+      "brand_recall_score": 78.0,
+      "message_clarity_score": 80.0,
+      "emotional_resonance_score": 58.0,
+      "attention_score": 82.0,
+      "uniqueness_score": 75.0,
+      "primary_kpi_lift": 7.7,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "FOLD_003",
+      "creative_name": "Pixel 9 Pro Fold - Epic Display of AI",
+      "passed": false,
+      "awareness_lift_pct": 4.7,
+      "awareness_significant": false,
+      "consideration_lift_pct": 4.0,
+      "consideration_significant": false,
+      "ad_recall_lift_pct": 3.7,
+      "ad_recall_significant": false,
+      "brand_recall_score": 70.0,
+      "message_clarity_score": 68.0,
+      "emotional_resonance_score": 72.0,
+      "attention_score": 72.0,
+      "uniqueness_score": 78.0,
+      "primary_kpi_lift": 4.7,
+      "primary_kpi_stat_sig": false
+    }
+  ],
+  "campaign": {
+    "id": "PIXEL_9_FOLD_Q4_2024",
+    "name": "Pixel 9 Pro Fold Launch",
+    "brand": {
+      "name": "Pixel"
+    },
+    "product": "Pixel 9 Pro Fold",
+    "quarter": "Q4",
+    "year": 2024
+  },
+  "total_creatives_tested": 3,
+  "creatives_passed": 2,
+  "pass_rate": 0.6666666666666666,
+  "_meta": {
+    "results_id": "PIXEL_9_FOLD_Q4_2024_20260205_205508",
+    "campaign_id": "PIXEL_9_FOLD_Q4_2024",
+    "saved_at": "2026-02-05T20:55:08.763870",
+    "has_raw_csv": true
+  }
+}

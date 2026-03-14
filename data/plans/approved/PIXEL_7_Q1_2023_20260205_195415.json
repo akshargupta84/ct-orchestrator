@@ -1,0 +1,52 @@
+{
+  "id": "PIXEL_7_Q1_2023",
+  "campaign": {
+    "id": "PIXEL_7_Q1_2023",
+    "name": "Pixel 7 Business & Design Campaign",
+    "brand": {
+      "name": "Pixel"
+    },
+    "product": "Pixel 7",
+    "budget": 25000000,
+    "quarter": "Q1",
+    "year": 2023,
+    "start_date": "2023-02-10"
+  },
+  "primary_kpi": "consideration",
+  "secondary_kpis": [
+    "awareness",
+    "purchase_intent"
+  ],
+  "hypothesis": "Design-focused creative will resonate better with premium audience than feature-focused ads",
+  "creatives": [
+    {
+      "creative_id": "PIX7B_001",
+      "filename": "The Design of Google Pixel 7.mp4",
+      "creative_name": "Pixel 7 - Design Story",
+      "duration_seconds": 45,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX7B_002",
+      "filename": "Pixel 7 Built for Business.mp4",
+      "creative_name": "Pixel 7 - Built for Business",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "PIX7B_003",
+      "filename": "Made by Google '22.mp4",
+      "creative_name": "Made by Google 2022 Event Highlight",
+      "duration_seconds": 90,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T19:54:15.654516",
+  "_meta": {
+    "plan_id": "PIXEL_7_Q1_2023_20260205_195415",
+    "campaign_id": "PIXEL_7_Q1_2023",
+    "saved_at": "2026-02-05T19:54:15.654535",
+    "is_approved": true
+  }
+}

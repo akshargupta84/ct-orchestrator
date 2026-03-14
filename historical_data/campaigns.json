@@ -1,0 +1,624 @@
+{
+  "campaigns": [
+    {
+      "id": "PIXEL_7_Q4_2022",
+      "name": "Pixel 7 Launch Campaign",
+      "brand": "Pixel",
+      "product": "Pixel 7",
+      "quarter": "Q4",
+      "year": 2022,
+      "budget_millions": 45,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration", "ad_recall"],
+      "target_audience": "Tech-savvy consumers 25-54",
+      "test_vendor": "YouGov",
+      "test_date": "2022-10-15",
+      "hypothesis": "New Pixel 7 launch creative featuring celebrity endorsements will drive higher awareness than product-focused ads",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "PIX7_001",
+          "filename": "Google Pixel 7 ｜ Meet the Pixel 7 and Pixel 7 Pro.mp4",
+          "creative_name": "Pixel 7 - Meet the Pixel 7 and 7 Pro",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX7_002",
+          "filename": "Google Pixel 7 & 7 Pro Commercial 2022 Candace Parker, Kelsey Plum, Taylor Rooks, Simu Liu Ad Review.mp4",
+          "creative_name": "Pixel 7 - Celebrity Endorsement",
+          "duration_seconds": 60,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX7_003",
+          "filename": "Google Pixel 7 Commercial The Beautiful Game Belongs to All of Us.mp4",
+          "creative_name": "Pixel 7 - Beautiful Game World Cup",
+          "duration_seconds": 60,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX7_004",
+          "filename": "GOOGLE PIXEL 7 OFFICIAL TRAILER AD COMMERCIAL.mp4",
+          "creative_name": "Pixel 7 - Official Trailer",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX7_005",
+          "filename": "Get Ready for Google Pixel 7： A Phone That Gives You More.mp4",
+          "creative_name": "Pixel 7 - Phone That Gives More",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX7_006",
+          "filename": "Meet Pixel 7 & Pixel 7 Pro： Google's Most Advanced Phones.mp4",
+          "creative_name": "Pixel 7 - Most Advanced Phones",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "PIXEL_7_Q1_2023",
+      "name": "Pixel 7 Business & Design Campaign",
+      "brand": "Pixel",
+      "product": "Pixel 7",
+      "quarter": "Q1",
+      "year": 2023,
+      "budget_millions": 25,
+      "primary_kpi": "consideration",
+      "secondary_kpis": ["awareness", "purchase_intent"],
+      "target_audience": "Business professionals 30-55",
+      "test_vendor": "Kantar",
+      "test_date": "2023-02-10",
+      "hypothesis": "Design-focused creative will resonate better with premium audience than feature-focused ads",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "PIX7B_001",
+          "filename": "The Design of Google Pixel 7.mp4",
+          "creative_name": "Pixel 7 - Design Story",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX7B_002",
+          "filename": "Pixel 7 Built for Business.mp4",
+          "creative_name": "Pixel 7 - Built for Business",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX7B_003",
+          "filename": "Made by Google '22.mp4",
+          "creative_name": "Made by Google 2022 Event Highlight",
+          "duration_seconds": 90,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "PIXEL_8_Q4_2023",
+      "name": "Pixel 8 Launch Campaign",
+      "brand": "Pixel",
+      "product": "Pixel 8",
+      "quarter": "Q4",
+      "year": 2023,
+      "budget_millions": 55,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration", "ad_recall"],
+      "target_audience": "Tech enthusiasts and upgraders 25-49",
+      "test_vendor": "YouGov",
+      "test_date": "2023-10-20",
+      "hypothesis": "AI-focused messaging (Circle to Search) will outperform traditional feature ads",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "PIX8_001",
+          "filename": "Meet Google Pixel 8 and Pixel 8 Pro.mp4",
+          "creative_name": "Pixel 8 - Meet Pixel 8 and 8 Pro",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX8_002",
+          "filename": "PIxel 8 Circle to search #BestPhonesForever： Circling Around.mp4",
+          "creative_name": "Pixel 8 - Circle to Search BFF",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX8_003",
+          "filename": "Pixel 8 The W8 is Almost Over ｜ Made by Google.mp4",
+          "creative_name": "Pixel 8 - The W8 is Almost Over",
+          "duration_seconds": 15,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX8_004",
+          "filename": "The Design of Google Pixel 8 Pro.mp4",
+          "creative_name": "Pixel 8 Pro - Design Story",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX8_005",
+          "filename": "The Design of Google Pixel 8.mp4",
+          "creative_name": "Pixel 8 - Design Story",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX8_006",
+          "filename": "Experience the Power of AI on Google Pixel 8 .mp4",
+          "creative_name": "Pixel 8 - Power of AI",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "PIXEL_8A_Q2_2024",
+      "name": "Pixel 8a Mid-Range Launch",
+      "brand": "Pixel",
+      "product": "Pixel 8a",
+      "quarter": "Q2",
+      "year": 2024,
+      "budget_millions": 30,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration", "purchase_intent"],
+      "target_audience": "Value-conscious smartphone buyers 18-44",
+      "test_vendor": "YouGov",
+      "test_date": "2024-05-15",
+      "hypothesis": "Humor-based creative (#BestPhonesForever) will drive higher engagement than product demo ads",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "PIX8A_001",
+          "filename": "Introducing Google Pixel 8a.mp4",
+          "creative_name": "Pixel 8a - Introduction",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX8A_002",
+          "filename": "#Pixel8a has joined the chat.mp4",
+          "creative_name": "Pixel 8a - Joined the Chat",
+          "duration_seconds": 15,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX8A_003",
+          "filename": "Audio Magic Eraser on Google Pixel 8a.mp4",
+          "creative_name": "Pixel 8a - Audio Magic Eraser",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX8A_004",
+          "filename": "The Design of Google Pixel 8a.mp4",
+          "creative_name": "Pixel 8a - Design Story",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "PIXEL_BFF_Q2_2024",
+      "name": "Pixel Best Phones Forever Campaign",
+      "brand": "Pixel",
+      "product": "Pixel (Multi)",
+      "quarter": "Q2",
+      "year": 2024,
+      "budget_millions": 40,
+      "primary_kpi": "ad_recall",
+      "secondary_kpis": ["awareness", "consideration"],
+      "target_audience": "Gen Z and Millennials 18-34",
+      "test_vendor": "Kantar",
+      "test_date": "2024-06-01",
+      "hypothesis": "Serialized humor campaign will build stronger brand recall than standalone product ads",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "BFF_001",
+          "filename": "#BestPhonesForever： Circling Around [lEynMGsxpns].mp4",
+          "creative_name": "BFF - Circling Around",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "BFF_002",
+          "filename": "#BestPhonesForever： Plateau.mp4",
+          "creative_name": "BFF - Plateau",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "PIXEL_9_Q3_2024",
+      "name": "Pixel 9 Launch Campaign",
+      "brand": "Pixel",
+      "product": "Pixel 9",
+      "quarter": "Q3",
+      "year": 2024,
+      "budget_millions": 65,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration", "ad_recall"],
+      "target_audience": "Premium smartphone buyers 25-54",
+      "test_vendor": "YouGov",
+      "test_date": "2024-08-20",
+      "hypothesis": "AI feature demos (Add Me, Magic Editor) will drive higher consideration than brand ads",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "PIX9_001",
+          "filename": "Google Pixel 9 With Add Me.mp4",
+          "creative_name": "Pixel 9 - Add Me Feature",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX9_002",
+          "filename": "Google Pixel 9 With Circle to Search.mp4",
+          "creative_name": "Pixel 9 - Circle to Search",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX9_003",
+          "filename": "Google Pixel 9 With Magic Editor.mp4",
+          "creative_name": "Pixel 9 - Magic Editor",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX9_004",
+          "filename": "Introducing the Google Pixel 9 Pro.mp4",
+          "creative_name": "Pixel 9 Pro - Introduction",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX9_005",
+          "filename": "Switch like Sol ｜ Google Pixel 9.mp4",
+          "creative_name": "Pixel 9 - Switch Like Sol",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "PIXEL_9_FOLD_Q4_2024",
+      "name": "Pixel 9 Pro Fold Launch",
+      "brand": "Pixel",
+      "product": "Pixel 9 Pro Fold",
+      "quarter": "Q4",
+      "year": 2024,
+      "budget_millions": 35,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration"],
+      "target_audience": "Early adopters and premium tech buyers 30-55",
+      "test_vendor": "YouGov",
+      "test_date": "2024-09-15",
+      "hypothesis": "Productivity-focused messaging will resonate better than design-focused for foldable",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "FOLD_001",
+          "filename": "Introducing the Google Pixel 9 Pro Fold.mp4",
+          "creative_name": "Pixel 9 Pro Fold - Introduction",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "FOLD_002",
+          "filename": "Google Pixel 9 Pro Fold： Multitasking.mp4",
+          "creative_name": "Pixel 9 Pro Fold - Multitasking",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "FOLD_003",
+          "filename": "Meet Google Pixel 9 Pro Fold With Gemini ｜ An Epic Display of Google AI.mp4",
+          "creative_name": "Pixel 9 Pro Fold - Epic Display of AI",
+          "duration_seconds": 60,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "PIXEL_9A_Q1_2025",
+      "name": "Pixel 9a Launch Campaign",
+      "brand": "Pixel",
+      "product": "Pixel 9a",
+      "quarter": "Q1",
+      "year": 2025,
+      "budget_millions": 28,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration", "purchase_intent"],
+      "target_audience": "Value-conscious buyers and business users 25-49",
+      "test_vendor": "YouGov",
+      "test_date": "2025-01-20",
+      "hypothesis": "Business-ready messaging will expand audience beyond typical Pixel buyer",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "PIX9A_001",
+          "filename": "Google Pixel 9a： Google Powered, Business Ready.mp4",
+          "creative_name": "Pixel 9a - Business Ready",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX9A_002",
+          "filename": "Meet Google Pixel 9a With Gemini ｜ Magic, Made Simple.mp4",
+          "creative_name": "Pixel 9a - Magic Made Simple",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "PIX9A_003",
+          "filename": "Let Gemini on #Pixel9a transform your to-dos into to-dones..mp4",
+          "creative_name": "Pixel 9a - To-Dos to To-Dones",
+          "duration_seconds": 15,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "GEMINI_LAUNCH_Q1_2024",
+      "name": "Gemini Era Launch Campaign",
+      "brand": "Gemini",
+      "product": "Gemini",
+      "quarter": "Q1",
+      "year": 2024,
+      "budget_millions": 80,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration", "ad_recall"],
+      "target_audience": "Tech-forward professionals and creators 25-54",
+      "test_vendor": "YouGov",
+      "test_date": "2024-02-15",
+      "hypothesis": "Aspirational 'era' messaging will create stronger brand positioning than feature demos",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "GEM_001",
+          "filename": "Google – Welcome to the Gemini era.mp4",
+          "creative_name": "Gemini - Welcome to the Era",
+          "duration_seconds": 60,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "GEM_002",
+          "filename": "The best of Google AI is now part of Workspace.mp4",
+          "creative_name": "Gemini - Best of AI in Workspace",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "GEMINI_FEATURES_Q3_2024",
+      "name": "Gemini Features Campaign",
+      "brand": "Gemini",
+      "product": "Gemini",
+      "quarter": "Q3",
+      "year": 2024,
+      "budget_millions": 50,
+      "primary_kpi": "consideration",
+      "secondary_kpis": ["awareness", "ad_recall"],
+      "target_audience": "Knowledge workers and students 18-44",
+      "test_vendor": "Kantar",
+      "test_date": "2024-08-01",
+      "hypothesis": "Emotional storytelling (Mr. Fuzzy) will outperform product demos for consideration",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "GEM_003",
+          "filename": "Google Gemini： Mr. Fuzzy's Big Adventure .mp4",
+          "creative_name": "Gemini - Mr. Fuzzy's Big Adventure",
+          "duration_seconds": 60,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "GEM_004",
+          "filename": "Introducing Canvas in Gemini .mp4",
+          "creative_name": "Gemini - Introducing Canvas",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "GEM_005",
+          "filename": "Google Pixel 10 with Gemini Live ｜ Actually New.mp4",
+          "creative_name": "Pixel 10 with Gemini Live",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "GEMINI_OLYMPICS_Q3_2024",
+      "name": "Gemini Olympics Campaign",
+      "brand": "Gemini",
+      "product": "Gemini",
+      "quarter": "Q3",
+      "year": 2024,
+      "budget_millions": 60,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["ad_recall"],
+      "target_audience": "General audience 18-65",
+      "test_vendor": "YouGov",
+      "test_date": "2024-07-25",
+      "hypothesis": "Olympics tie-in will drive mass awareness but emotional story may backfire",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "GEM_006",
+          "filename": "Google + Team USA — Dear Sydney .mp4",
+          "creative_name": "Gemini - Dear Sydney Olympics",
+          "duration_seconds": 60,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "GEMINI_2025_Q1_2025",
+      "name": "Gemini 2025 Campaign",
+      "brand": "Gemini",
+      "product": "Gemini",
+      "quarter": "Q1",
+      "year": 2025,
+      "budget_millions": 75,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration", "ad_recall"],
+      "target_audience": "Early adopters and creators 25-49",
+      "test_vendor": "YouGov",
+      "test_date": "2025-02-01",
+      "hypothesis": "Super Bowl placement with dream job narrative will drive record awareness",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "GEM_007",
+          "filename": "Dream Job ｜ Google Pixel SB Commercial 2025.mp4",
+          "creative_name": "Gemini - Dream Job Super Bowl",
+          "duration_seconds": 60,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "GEM_008",
+          "filename": "Veo 3 in Gemini is now in the UK.mp4",
+          "creative_name": "Gemini - Veo 3 UK Launch",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "GEM_009",
+          "filename": "Google Gemini Craziest Fan Contest ｜ T20 World cup 2026.mp4",
+          "creative_name": "Gemini - T20 World Cup Contest",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "SEARCH_CTS_Q4_2023",
+      "name": "Circle to Search Launch",
+      "brand": "Google Search",
+      "product": "Circle to Search",
+      "quarter": "Q4",
+      "year": 2023,
+      "budget_millions": 45,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration", "ad_recall"],
+      "target_audience": "Mobile-first users 18-44",
+      "test_vendor": "YouGov",
+      "test_date": "2023-11-15",
+      "hypothesis": "Simple demo creative will drive higher awareness than lifestyle integration ads",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "SRCH_001",
+          "filename": "Introducing a new way to search ｜ Circle to Search.mp4",
+          "creative_name": "Circle to Search - Introduction",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "SRCH_002",
+          "filename": "Android & LE SSERAFIM： Meet Gemini and Circle to Search .mp4",
+          "creative_name": "Circle to Search - LE SSERAFIM Partnership",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "SEARCH_AI_Q2_2025",
+      "name": "AI Mode Launch Campaign",
+      "brand": "Google Search",
+      "product": "AI Mode",
+      "quarter": "Q2",
+      "year": 2025,
+      "budget_millions": 55,
+      "primary_kpi": "awareness",
+      "secondary_kpis": ["consideration"],
+      "target_audience": "Search power users 25-54",
+      "test_vendor": "YouGov",
+      "test_date": "2025-04-15",
+      "hypothesis": "AI mode experimental positioning will attract early adopters without alienating mainstream",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "SRCH_003",
+          "filename": "Google Search AI Mode is now available in the U.S.mp4",
+          "creative_name": "AI Mode - US Launch",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "SRCH_004",
+          "filename": "Introducing AI Mode： A New Experiment in Google Search.mp4",
+          "creative_name": "AI Mode - Introduction",
+          "duration_seconds": 45,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "SRCH_005",
+          "filename": "Discovering & Shopping Made Easy with Google AI.mp4",
+          "creative_name": "Google AI - Shopping Made Easy",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        }
+      ]
+    },
+    {
+      "id": "SEARCH_BRAND_Q4_2024",
+      "name": "Year in Search Campaign",
+      "brand": "Google Search",
+      "product": "Google Search",
+      "quarter": "Q4",
+      "year": 2024,
+      "budget_millions": 40,
+      "primary_kpi": "ad_recall",
+      "secondary_kpis": ["awareness"],
+      "target_audience": "General audience 18-65",
+      "test_vendor": "Kantar",
+      "test_date": "2024-12-10",
+      "hypothesis": "Emotional year-end retrospective will drive highest recall of any Search campaign",
+      "status": "completed",
+      "creatives": [
+        {
+          "creative_id": "SRCH_006",
+          "filename": "2024 — Year in Search.mp4",
+          "creative_name": "Year in Search 2024",
+          "duration_seconds": 120,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "SRCH_007",
+          "filename": "2025 — Year in Search.mp4",
+          "creative_name": "Year in Search 2025",
+          "duration_seconds": 120,
+          "asset_type": "video"
+        },
+        {
+          "creative_id": "SRCH_008",
+          "filename": "New ways to search： Beetlejuice Beetlejuice.mp4",
+          "creative_name": "New Ways to Search - Beetlejuice",
+          "duration_seconds": 30,
+          "asset_type": "video"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "total_campaigns": 16,
+    "total_creatives": 49,
+    "brands": ["Pixel", "Gemini", "Google Search"],
+    "date_range": "Q4 2022 - Q2 2025",
+    "generated_for": "CT Orchestrator Historical Data Seeding"
+  }
+}

@@ -1,0 +1,40 @@
+# Sample Testing Hypotheses
+
+Use these when creating test plans. Copy/paste into the hypotheses field.
+
+## Video Creative Hypotheses
+
+Emotional storytelling will drive higher brand recall and awareness than product-focused messaging
+Shorter 15s cutdowns will maintain brand lift impact while allowing for higher frequency
+Product demonstration content will outperform lifestyle content for consideration
+Authentic customer testimonials will increase credibility and trust metrics
+Aspirational lifestyle content will resonate more strongly with younger demographics (18-34)
+Educational how-to content will drive deeper engagement and longer view times
+Humor-based creative will improve likability but may reduce message clarity
+Celebrity endorsement will boost awareness but may not impact purchase intent
+
+## Display Creative Hypotheses
+
+Clean product photography will outperform lifestyle imagery for direct response
+Promotional messaging with urgency will drive higher click-through rates
+Native ad formats will feel less intrusive and generate higher engagement
+Carousel formats showing multiple products will increase consideration
+Larger ad formats (300x600, 970x250) will command more attention
+Dynamic creative optimization will improve relevance scores
+Retargeting creative with reminder messaging will drive higher conversion
+Animation will increase attention but may decrease brand recall
+
+## Cross-Channel Hypotheses
+
+Consistent creative across channels will reinforce brand recognition
+Channel-specific optimization will outperform one-size-fits-all approach
+Sequential storytelling across touchpoints will improve consideration
+Video exposure will amplify display ad effectiveness
+Audio reinforcement will strengthen TV campaign message
+
+## Audience-Specific Hypotheses
+
+Personalized messaging will outperform generic creative for known customers
+Acquisition creative should focus on category benefits vs brand benefits
+Lapsed customer creative emphasizing "what's new" will drive reactivation
+High-value customer creative can focus on premium/exclusive messaging

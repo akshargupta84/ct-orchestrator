@@ -1,0 +1,64 @@
+{
+  "campaign_id": "SEARCH_CTS_Q4_2023",
+  "campaign_name": "Circle to Search Launch",
+  "plan_id": "SEARCH_CTS_Q4_2023",
+  "test_date": "2023-11-15",
+  "test_vendor": "YouGov",
+  "results": [
+    {
+      "creative_id": "SRCH_001",
+      "creative_name": "Circle to Search - Introduction",
+      "passed": true,
+      "awareness_lift_pct": 7.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 6.7,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 6.3,
+      "ad_recall_significant": true,
+      "brand_recall_score": 80.0,
+      "message_clarity_score": 82.0,
+      "emotional_resonance_score": 62.0,
+      "attention_score": 85.0,
+      "uniqueness_score": 78.0,
+      "primary_kpi_lift": 7.3,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "SRCH_002",
+      "creative_name": "Circle to Search - LE SSERAFIM Partnership",
+      "passed": true,
+      "awareness_lift_pct": 8.6,
+      "awareness_significant": true,
+      "consideration_lift_pct": 8.3,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 10.3,
+      "ad_recall_significant": true,
+      "brand_recall_score": 75.0,
+      "message_clarity_score": 70.0,
+      "emotional_resonance_score": 82.0,
+      "attention_score": 92.0,
+      "uniqueness_score": 85.0,
+      "primary_kpi_lift": 8.6,
+      "primary_kpi_stat_sig": true
+    }
+  ],
+  "campaign": {
+    "id": "SEARCH_CTS_Q4_2023",
+    "name": "Circle to Search Launch",
+    "brand": {
+      "name": "Google Search"
+    },
+    "product": "Circle to Search",
+    "quarter": "Q4",
+    "year": 2023
+  },
+  "total_creatives_tested": 2,
+  "creatives_passed": 2,
+  "pass_rate": 1.0,
+  "_meta": {
+    "results_id": "SEARCH_CTS_Q4_2023_20260205_213158",
+    "campaign_id": "SEARCH_CTS_Q4_2023",
+    "saved_at": "2026-02-05T21:31:58.543817",
+    "has_raw_csv": true
+  }
+}

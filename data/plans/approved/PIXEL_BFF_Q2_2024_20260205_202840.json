@@ -1,0 +1,45 @@
+{
+  "id": "PIXEL_BFF_Q2_2024",
+  "campaign": {
+    "id": "PIXEL_BFF_Q2_2024",
+    "name": "Pixel Best Phones Forever Campaign",
+    "brand": {
+      "name": "Pixel"
+    },
+    "product": "Pixel (Multi)",
+    "budget": 40000000,
+    "quarter": "Q2",
+    "year": 2024,
+    "start_date": "2024-06-01"
+  },
+  "primary_kpi": "ad_recall",
+  "secondary_kpis": [
+    "awareness",
+    "consideration"
+  ],
+  "hypothesis": "Serialized humor campaign will build stronger brand recall than standalone product ads",
+  "creatives": [
+    {
+      "creative_id": "BFF_001",
+      "filename": "#BestPhonesForever\uff1a Circling Around [lEynMGsxpns].mp4",
+      "creative_name": "BFF - Circling Around",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "BFF_002",
+      "filename": "#BestPhonesForever\uff1a Plateau.mp4",
+      "creative_name": "BFF - Plateau",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T20:28:40.540527",
+  "_meta": {
+    "plan_id": "PIXEL_BFF_Q2_2024_20260205_202840",
+    "campaign_id": "PIXEL_BFF_Q2_2024",
+    "saved_at": "2026-02-05T20:28:40.540543",
+    "is_approved": true
+  }
+}

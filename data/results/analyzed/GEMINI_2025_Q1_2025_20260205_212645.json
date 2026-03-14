@@ -1,0 +1,82 @@
+{
+  "campaign_id": "GEMINI_2025_Q1_2025",
+  "campaign_name": "Gemini 2025 Campaign",
+  "plan_id": "GEMINI_2025_Q1_2025",
+  "test_date": "2025-02-01",
+  "test_vendor": "YouGov",
+  "results": [
+    {
+      "creative_id": "GEM_007",
+      "creative_name": "Gemini - Dream Job Super Bowl",
+      "passed": true,
+      "awareness_lift_pct": 12.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 9.7,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 14.3,
+      "ad_recall_significant": true,
+      "brand_recall_score": 88.0,
+      "message_clarity_score": 75.0,
+      "emotional_resonance_score": 92.0,
+      "attention_score": 95.0,
+      "uniqueness_score": 88.0,
+      "primary_kpi_lift": 12.3,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "GEM_008",
+      "creative_name": "Gemini - Veo 3 UK Launch",
+      "passed": true,
+      "awareness_lift_pct": 5.6,
+      "awareness_significant": true,
+      "consideration_lift_pct": 4.4,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 4.7,
+      "ad_recall_significant": true,
+      "brand_recall_score": 75.0,
+      "message_clarity_score": 78.0,
+      "emotional_resonance_score": 65.0,
+      "attention_score": 72.0,
+      "uniqueness_score": 80.0,
+      "primary_kpi_lift": 5.6,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "GEM_009",
+      "creative_name": "Gemini - T20 World Cup Contest",
+      "passed": true,
+      "awareness_lift_pct": 6.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 5.7,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 7.3,
+      "ad_recall_significant": true,
+      "brand_recall_score": 78.0,
+      "message_clarity_score": 72.0,
+      "emotional_resonance_score": 75.0,
+      "attention_score": 80.0,
+      "uniqueness_score": 82.0,
+      "primary_kpi_lift": 6.3,
+      "primary_kpi_stat_sig": true
+    }
+  ],
+  "campaign": {
+    "id": "GEMINI_2025_Q1_2025",
+    "name": "Gemini 2025 Campaign",
+    "brand": {
+      "name": "Gemini"
+    },
+    "product": "Gemini",
+    "quarter": "Q1",
+    "year": 2025
+  },
+  "total_creatives_tested": 3,
+  "creatives_passed": 3,
+  "pass_rate": 1.0,
+  "_meta": {
+    "results_id": "GEMINI_2025_Q1_2025_20260205_212645",
+    "campaign_id": "GEMINI_2025_Q1_2025",
+    "saved_at": "2026-02-05T21:26:45.025473",
+    "has_raw_csv": true
+  }
+}

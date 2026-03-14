@@ -1,0 +1,214 @@
+{
+  "campaigns": {
+    "PIXEL_7_Q4_2022": {
+      "id": "PIXEL_7_Q4_2022",
+      "name": "Pixel 7 Launch Campaign",
+      "brand": "Pixel",
+      "has_approved_plan": true,
+      "approved_plan_id": "PIXEL_7_Q4_2022_20260205_193816",
+      "updated_at": "2026-02-05T19:54:15.653834",
+      "created_at": "2026-02-05T19:38:16.301465",
+      "has_results": true,
+      "latest_results_id": "PIXEL_7_Q4_2022_20260205_195415",
+      "results_ids": [
+        "PIXEL_7_Q4_2022_20260205_195415"
+      ]
+    },
+    "PIXEL_7_Q1_2023": {
+      "id": "PIXEL_7_Q1_2023",
+      "name": "Pixel 7 Business & Design Campaign",
+      "brand": "Pixel",
+      "has_approved_plan": true,
+      "approved_plan_id": "PIXEL_7_Q1_2023_20260205_195415",
+      "updated_at": "2026-02-05T20:02:07.820013",
+      "created_at": "2026-02-05T19:54:15.654711",
+      "has_results": true,
+      "latest_results_id": "PIXEL_7_Q1_2023_20260205_200207",
+      "results_ids": [
+        "PIXEL_7_Q1_2023_20260205_200207"
+      ]
+    },
+    "PIXEL_8_Q4_2023": {
+      "id": "PIXEL_8_Q4_2023",
+      "name": "Pixel 8 Launch Campaign",
+      "brand": "Pixel",
+      "has_approved_plan": true,
+      "approved_plan_id": "PIXEL_8_Q4_2023_20260205_200207",
+      "updated_at": "2026-02-05T20:18:03.917884",
+      "created_at": "2026-02-05T20:02:07.820500",
+      "has_results": true,
+      "latest_results_id": "PIXEL_8_Q4_2023_20260205_201803",
+      "results_ids": [
+        "PIXEL_8_Q4_2023_20260205_201803"
+      ]
+    },
+    "PIXEL_8A_Q2_2024": {
+      "id": "PIXEL_8A_Q2_2024",
+      "name": "Pixel 8a Mid-Range Launch",
+      "brand": "Pixel",
+      "has_approved_plan": true,
+      "approved_plan_id": "PIXEL_8A_Q2_2024_20260205_201803",
+      "updated_at": "2026-02-05T20:28:40.540079",
+      "created_at": "2026-02-05T20:18:03.918355",
+      "has_results": true,
+      "latest_results_id": "PIXEL_8A_Q2_2024_20260205_202840",
+      "results_ids": [
+        "PIXEL_8A_Q2_2024_20260205_202840"
+      ]
+    },
+    "PIXEL_BFF_Q2_2024": {
+      "id": "PIXEL_BFF_Q2_2024",
+      "name": "Pixel Best Phones Forever Campaign",
+      "brand": "Pixel",
+      "has_approved_plan": true,
+      "approved_plan_id": "PIXEL_BFF_Q2_2024_20260205_202840",
+      "updated_at": "2026-02-05T20:33:48.450611",
+      "created_at": "2026-02-05T20:28:40.540718",
+      "has_results": true,
+      "latest_results_id": "PIXEL_BFF_Q2_2024_20260205_203348",
+      "results_ids": [
+        "PIXEL_BFF_Q2_2024_20260205_203348"
+      ]
+    },
+    "PIXEL_9_Q3_2024": {
+      "id": "PIXEL_9_Q3_2024",
+      "name": "Pixel 9 Launch Campaign",
+      "brand": "Pixel",
+      "has_approved_plan": true,
+      "approved_plan_id": "PIXEL_9_Q3_2024_20260205_203348",
+      "updated_at": "2026-02-05T20:47:03.220276",
+      "created_at": "2026-02-05T20:33:48.451163",
+      "has_results": true,
+      "latest_results_id": "PIXEL_9_Q3_2024_20260205_204703",
+      "results_ids": [
+        "PIXEL_9_Q3_2024_20260205_204703"
+      ]
+    },
+    "PIXEL_9_FOLD_Q4_2024": {
+      "id": "PIXEL_9_FOLD_Q4_2024",
+      "name": "Pixel 9 Pro Fold Launch",
+      "brand": "Pixel",
+      "has_approved_plan": true,
+      "approved_plan_id": "PIXEL_9_FOLD_Q4_2024_20260205_204703",
+      "updated_at": "2026-02-05T20:55:08.764251",
+      "created_at": "2026-02-05T20:47:03.220839",
+      "has_results": true,
+      "latest_results_id": "PIXEL_9_FOLD_Q4_2024_20260205_205508",
+      "results_ids": [
+        "PIXEL_9_FOLD_Q4_2024_20260205_205508"
+      ]
+    },
+    "PIXEL_9A_Q1_2025": {
+      "id": "PIXEL_9A_Q1_2025",
+      "name": "Pixel 9a Launch Campaign",
+      "brand": "Pixel",
+      "has_approved_plan": true,
+      "approved_plan_id": "PIXEL_9A_Q1_2025_20260205_205508",
+      "updated_at": "2026-02-05T21:03:02.592004",
+      "created_at": "2026-02-05T20:55:08.764904",
+      "has_results": true,
+      "latest_results_id": "PIXEL_9A_Q1_2025_20260205_210302",
+      "results_ids": [
+        "PIXEL_9A_Q1_2025_20260205_210302"
+      ]
+    },
+    "GEMINI_LAUNCH_Q1_2024": {
+      "id": "GEMINI_LAUNCH_Q1_2024",
+      "name": "Gemini Era Launch Campaign",
+      "brand": "Gemini",
+      "has_approved_plan": true,
+      "approved_plan_id": "GEMINI_LAUNCH_Q1_2024_20260205_210302",
+      "updated_at": "2026-02-05T21:08:15.178639",
+      "created_at": "2026-02-05T21:03:02.592622",
+      "has_results": true,
+      "latest_results_id": "GEMINI_LAUNCH_Q1_2024_20260205_210815",
+      "results_ids": [
+        "GEMINI_LAUNCH_Q1_2024_20260205_210815"
+      ]
+    },
+    "GEMINI_FEATURES_Q3_2024": {
+      "id": "GEMINI_FEATURES_Q3_2024",
+      "name": "Gemini Features Campaign",
+      "brand": "Gemini",
+      "has_approved_plan": true,
+      "approved_plan_id": "GEMINI_FEATURES_Q3_2024_20260205_210815",
+      "updated_at": "2026-02-05T21:16:04.660368",
+      "created_at": "2026-02-05T21:08:15.179183",
+      "has_results": true,
+      "latest_results_id": "GEMINI_FEATURES_Q3_2024_20260205_211604",
+      "results_ids": [
+        "GEMINI_FEATURES_Q3_2024_20260205_211604"
+      ]
+    },
+    "GEMINI_OLYMPICS_Q3_2024": {
+      "id": "GEMINI_OLYMPICS_Q3_2024",
+      "name": "Gemini Olympics Campaign",
+      "brand": "Gemini",
+      "has_approved_plan": true,
+      "approved_plan_id": "GEMINI_OLYMPICS_Q3_2024_20260205_211604",
+      "updated_at": "2026-02-05T21:18:41.687725",
+      "created_at": "2026-02-05T21:16:04.661025",
+      "has_results": true,
+      "latest_results_id": "GEMINI_OLYMPICS_Q3_2024_20260205_211841",
+      "results_ids": [
+        "GEMINI_OLYMPICS_Q3_2024_20260205_211841"
+      ]
+    },
+    "GEMINI_2025_Q1_2025": {
+      "id": "GEMINI_2025_Q1_2025",
+      "name": "Gemini 2025 Campaign",
+      "brand": "Gemini",
+      "has_approved_plan": true,
+      "approved_plan_id": "GEMINI_2025_Q1_2025_20260205_211841",
+      "updated_at": "2026-02-05T21:26:45.025792",
+      "created_at": "2026-02-05T21:18:41.688301",
+      "has_results": true,
+      "latest_results_id": "GEMINI_2025_Q1_2025_20260205_212645",
+      "results_ids": [
+        "GEMINI_2025_Q1_2025_20260205_212645"
+      ]
+    },
+    "SEARCH_CTS_Q4_2023": {
+      "id": "SEARCH_CTS_Q4_2023",
+      "name": "Circle to Search Launch",
+      "brand": "Google Search",
+      "has_approved_plan": true,
+      "approved_plan_id": "SEARCH_CTS_Q4_2023_20260205_212645",
+      "updated_at": "2026-02-05T21:31:58.544047",
+      "created_at": "2026-02-05T21:26:45.026404",
+      "has_results": true,
+      "latest_results_id": "SEARCH_CTS_Q4_2023_20260205_213158",
+      "results_ids": [
+        "SEARCH_CTS_Q4_2023_20260205_213158"
+      ]
+    },
+    "SEARCH_AI_Q2_2025": {
+      "id": "SEARCH_AI_Q2_2025",
+      "name": "AI Mode Launch Campaign",
+      "brand": "Google Search",
+      "has_approved_plan": true,
+      "approved_plan_id": "SEARCH_AI_Q2_2025_20260205_213158",
+      "updated_at": "2026-02-05T21:39:54.909881",
+      "created_at": "2026-02-05T21:31:58.544567",
+      "has_results": true,
+      "latest_results_id": "SEARCH_AI_Q2_2025_20260205_213954",
+      "results_ids": [
+        "SEARCH_AI_Q2_2025_20260205_213954"
+      ]
+    },
+    "SEARCH_BRAND_Q4_2024": {
+      "id": "SEARCH_BRAND_Q4_2024",
+      "name": "Year in Search Campaign",
+      "brand": "Google Search",
+      "has_approved_plan": true,
+      "approved_plan_id": "SEARCH_BRAND_Q4_2024_20260205_213954",
+      "updated_at": "2026-02-05T21:47:41.353666",
+      "created_at": "2026-02-05T21:39:54.910475",
+      "has_results": true,
+      "latest_results_id": "SEARCH_BRAND_Q4_2024_20260205_214741",
+      "results_ids": [
+        "SEARCH_BRAND_Q4_2024_20260205_214741"
+      ]
+    }
+  }
+}

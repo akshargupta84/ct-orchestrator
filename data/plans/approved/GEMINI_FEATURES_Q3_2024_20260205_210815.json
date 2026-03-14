@@ -1,0 +1,52 @@
+{
+  "id": "GEMINI_FEATURES_Q3_2024",
+  "campaign": {
+    "id": "GEMINI_FEATURES_Q3_2024",
+    "name": "Gemini Features Campaign",
+    "brand": {
+      "name": "Gemini"
+    },
+    "product": "Gemini",
+    "budget": 50000000,
+    "quarter": "Q3",
+    "year": 2024,
+    "start_date": "2024-08-01"
+  },
+  "primary_kpi": "consideration",
+  "secondary_kpis": [
+    "awareness",
+    "ad_recall"
+  ],
+  "hypothesis": "Emotional storytelling (Mr. Fuzzy) will outperform product demos for consideration",
+  "creatives": [
+    {
+      "creative_id": "GEM_003",
+      "filename": "Google Gemini\uff1a Mr. Fuzzy's Big Adventure .mp4",
+      "creative_name": "Gemini - Mr. Fuzzy's Big Adventure",
+      "duration_seconds": 60,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "GEM_004",
+      "filename": "Introducing Canvas in Gemini .mp4",
+      "creative_name": "Gemini - Introducing Canvas",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "GEM_005",
+      "filename": "Google Pixel 10 with Gemini Live \uff5c Actually New.mp4",
+      "creative_name": "Pixel 10 with Gemini Live",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T21:08:15.178985",
+  "_meta": {
+    "plan_id": "GEMINI_FEATURES_Q3_2024_20260205_210815",
+    "campaign_id": "GEMINI_FEATURES_Q3_2024",
+    "saved_at": "2026-02-05T21:08:15.178997",
+    "is_approved": true
+  }
+}

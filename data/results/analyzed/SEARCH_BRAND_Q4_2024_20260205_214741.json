@@ -1,0 +1,82 @@
+{
+  "campaign_id": "SEARCH_BRAND_Q4_2024",
+  "campaign_name": "Year in Search Campaign",
+  "plan_id": "SEARCH_BRAND_Q4_2024",
+  "test_date": "2024-12-10",
+  "test_vendor": "Kantar",
+  "results": [
+    {
+      "creative_id": "SRCH_006",
+      "creative_name": "Year in Search 2024",
+      "passed": true,
+      "awareness_lift_pct": 5.7,
+      "awareness_significant": true,
+      "consideration_lift_pct": 4.6,
+      "consideration_significant": false,
+      "ad_recall_lift_pct": 13.0,
+      "ad_recall_significant": true,
+      "brand_recall_score": 72.0,
+      "message_clarity_score": 65.0,
+      "emotional_resonance_score": 95.0,
+      "attention_score": 78.0,
+      "uniqueness_score": 92.0,
+      "primary_kpi_lift": 5.7,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "SRCH_007",
+      "creative_name": "Year in Search 2025",
+      "passed": true,
+      "awareness_lift_pct": 7.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 6.3,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 14.7,
+      "ad_recall_significant": true,
+      "brand_recall_score": 75.0,
+      "message_clarity_score": 68.0,
+      "emotional_resonance_score": 98.0,
+      "attention_score": 82.0,
+      "uniqueness_score": 95.0,
+      "primary_kpi_lift": 7.3,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "SRCH_008",
+      "creative_name": "New Ways to Search - Beetlejuice",
+      "passed": false,
+      "awareness_lift_pct": 4.3,
+      "awareness_significant": false,
+      "consideration_lift_pct": 3.3,
+      "consideration_significant": false,
+      "ad_recall_lift_pct": 4.7,
+      "ad_recall_significant": false,
+      "brand_recall_score": 68.0,
+      "message_clarity_score": 70.0,
+      "emotional_resonance_score": 72.0,
+      "attention_score": 75.0,
+      "uniqueness_score": 78.0,
+      "primary_kpi_lift": 4.3,
+      "primary_kpi_stat_sig": false
+    }
+  ],
+  "campaign": {
+    "id": "SEARCH_BRAND_Q4_2024",
+    "name": "Year in Search Campaign",
+    "brand": {
+      "name": "Google Search"
+    },
+    "product": "Google Search",
+    "quarter": "Q4",
+    "year": 2024
+  },
+  "total_creatives_tested": 3,
+  "creatives_passed": 2,
+  "pass_rate": 0.6666666666666666,
+  "_meta": {
+    "results_id": "SEARCH_BRAND_Q4_2024_20260205_214741",
+    "campaign_id": "SEARCH_BRAND_Q4_2024",
+    "saved_at": "2026-02-05T21:47:41.353233",
+    "has_raw_csv": true
+  }
+}

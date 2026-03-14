@@ -1,0 +1,45 @@
+{
+  "id": "GEMINI_LAUNCH_Q1_2024",
+  "campaign": {
+    "id": "GEMINI_LAUNCH_Q1_2024",
+    "name": "Gemini Era Launch Campaign",
+    "brand": {
+      "name": "Gemini"
+    },
+    "product": "Gemini",
+    "budget": 80000000,
+    "quarter": "Q1",
+    "year": 2024,
+    "start_date": "2024-02-15"
+  },
+  "primary_kpi": "awareness",
+  "secondary_kpis": [
+    "consideration",
+    "ad_recall"
+  ],
+  "hypothesis": "Aspirational 'era' messaging will create stronger brand positioning than feature demos",
+  "creatives": [
+    {
+      "creative_id": "GEM_001",
+      "filename": "Google \u2013 Welcome to the Gemini era.mp4",
+      "creative_name": "Gemini - Welcome to the Era",
+      "duration_seconds": 60,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "GEM_002",
+      "filename": "The best of Google AI is now part of Workspace.mp4",
+      "creative_name": "Gemini - Best of AI in Workspace",
+      "duration_seconds": 45,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T21:03:02.592335",
+  "_meta": {
+    "plan_id": "GEMINI_LAUNCH_Q1_2024_20260205_210302",
+    "campaign_id": "GEMINI_LAUNCH_Q1_2024",
+    "saved_at": "2026-02-05T21:03:02.592346",
+    "is_approved": true
+  }
+}

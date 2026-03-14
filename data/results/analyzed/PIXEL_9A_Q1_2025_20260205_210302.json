@@ -1,0 +1,82 @@
+{
+  "campaign_id": "PIXEL_9A_Q1_2025",
+  "campaign_name": "Pixel 9a Launch Campaign",
+  "plan_id": "PIXEL_9A_Q1_2025",
+  "test_date": "2025-01-20",
+  "test_vendor": "YouGov",
+  "results": [
+    {
+      "creative_id": "PIX9A_001",
+      "creative_name": "Pixel 9a - Business Ready",
+      "passed": true,
+      "awareness_lift_pct": 6.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 5.3,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 4.7,
+      "ad_recall_significant": true,
+      "brand_recall_score": 72.0,
+      "message_clarity_score": 78.0,
+      "emotional_resonance_score": 55.0,
+      "attention_score": 75.0,
+      "uniqueness_score": 68.0,
+      "primary_kpi_lift": 6.3,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "PIX9A_002",
+      "creative_name": "Pixel 9a - Magic Made Simple",
+      "passed": true,
+      "awareness_lift_pct": 7.6,
+      "awareness_significant": true,
+      "consideration_lift_pct": 6.7,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 6.4,
+      "ad_recall_significant": true,
+      "brand_recall_score": 78.0,
+      "message_clarity_score": 75.0,
+      "emotional_resonance_score": 68.0,
+      "attention_score": 82.0,
+      "uniqueness_score": 72.0,
+      "primary_kpi_lift": 7.6,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "PIX9A_003",
+      "creative_name": "Pixel 9a - To-Dos to To-Dones",
+      "passed": false,
+      "awareness_lift_pct": 4.3,
+      "awareness_significant": false,
+      "consideration_lift_pct": 2.7,
+      "consideration_significant": false,
+      "ad_recall_lift_pct": 4.0,
+      "ad_recall_significant": false,
+      "brand_recall_score": 68.0,
+      "message_clarity_score": 70.0,
+      "emotional_resonance_score": 62.0,
+      "attention_score": 72.0,
+      "uniqueness_score": 65.0,
+      "primary_kpi_lift": 4.3,
+      "primary_kpi_stat_sig": false
+    }
+  ],
+  "campaign": {
+    "id": "PIXEL_9A_Q1_2025",
+    "name": "Pixel 9a Launch Campaign",
+    "brand": {
+      "name": "Pixel"
+    },
+    "product": "Pixel 9a",
+    "quarter": "Q1",
+    "year": 2025
+  },
+  "total_creatives_tested": 3,
+  "creatives_passed": 2,
+  "pass_rate": 0.6666666666666666,
+  "_meta": {
+    "results_id": "PIXEL_9A_Q1_2025_20260205_210302",
+    "campaign_id": "PIXEL_9A_Q1_2025",
+    "saved_at": "2026-02-05T21:03:02.591678",
+    "has_raw_csv": true
+  }
+}

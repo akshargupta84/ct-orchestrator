@@ -1,0 +1,45 @@
+{
+  "id": "SEARCH_CTS_Q4_2023",
+  "campaign": {
+    "id": "SEARCH_CTS_Q4_2023",
+    "name": "Circle to Search Launch",
+    "brand": {
+      "name": "Google Search"
+    },
+    "product": "Circle to Search",
+    "budget": 45000000,
+    "quarter": "Q4",
+    "year": 2023,
+    "start_date": "2023-11-15"
+  },
+  "primary_kpi": "awareness",
+  "secondary_kpis": [
+    "consideration",
+    "ad_recall"
+  ],
+  "hypothesis": "Simple demo creative will drive higher awareness than lifestyle integration ads",
+  "creatives": [
+    {
+      "creative_id": "SRCH_001",
+      "filename": "Introducing a new way to search \uff5c Circle to Search.mp4",
+      "creative_name": "Circle to Search - Introduction",
+      "duration_seconds": 30,
+      "asset_type": "video"
+    },
+    {
+      "creative_id": "SRCH_002",
+      "filename": "Android & LE SSERAFIM\uff1a Meet Gemini and Circle to Search .mp4",
+      "creative_name": "Circle to Search - LE SSERAFIM Partnership",
+      "duration_seconds": 45,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T21:26:45.026122",
+  "_meta": {
+    "plan_id": "SEARCH_CTS_Q4_2023_20260205_212645",
+    "campaign_id": "SEARCH_CTS_Q4_2023",
+    "saved_at": "2026-02-05T21:26:45.026132",
+    "is_approved": true
+  }
+}

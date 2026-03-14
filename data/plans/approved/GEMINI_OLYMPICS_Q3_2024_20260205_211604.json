@@ -1,0 +1,37 @@
+{
+  "id": "GEMINI_OLYMPICS_Q3_2024",
+  "campaign": {
+    "id": "GEMINI_OLYMPICS_Q3_2024",
+    "name": "Gemini Olympics Campaign",
+    "brand": {
+      "name": "Gemini"
+    },
+    "product": "Gemini",
+    "budget": 60000000,
+    "quarter": "Q3",
+    "year": 2024,
+    "start_date": "2024-07-25"
+  },
+  "primary_kpi": "awareness",
+  "secondary_kpis": [
+    "ad_recall"
+  ],
+  "hypothesis": "Olympics tie-in will drive mass awareness but emotional story may backfire",
+  "creatives": [
+    {
+      "creative_id": "GEM_006",
+      "filename": "Google + Team USA \u2014 Dear Sydney .mp4",
+      "creative_name": "Gemini - Dear Sydney Olympics",
+      "duration_seconds": 60,
+      "asset_type": "video"
+    }
+  ],
+  "status": "completed",
+  "created_at": "2026-02-05T21:16:04.660720",
+  "_meta": {
+    "plan_id": "GEMINI_OLYMPICS_Q3_2024_20260205_211604",
+    "campaign_id": "GEMINI_OLYMPICS_Q3_2024",
+    "saved_at": "2026-02-05T21:16:04.660731",
+    "is_approved": true
+  }
+}

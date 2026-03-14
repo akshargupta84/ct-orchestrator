@@ -1,0 +1,64 @@
+{
+  "campaign_id": "GEMINI_LAUNCH_Q1_2024",
+  "campaign_name": "Gemini Era Launch Campaign",
+  "plan_id": "GEMINI_LAUNCH_Q1_2024",
+  "test_date": "2024-02-15",
+  "test_vendor": "YouGov",
+  "results": [
+    {
+      "creative_id": "GEM_001",
+      "creative_name": "Gemini - Welcome to the Era",
+      "passed": true,
+      "awareness_lift_pct": 8.3,
+      "awareness_significant": true,
+      "consideration_lift_pct": 6.7,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 8.3,
+      "ad_recall_significant": true,
+      "brand_recall_score": 85.0,
+      "message_clarity_score": 72.0,
+      "emotional_resonance_score": 78.0,
+      "attention_score": 82.0,
+      "uniqueness_score": 90.0,
+      "primary_kpi_lift": 8.3,
+      "primary_kpi_stat_sig": true
+    },
+    {
+      "creative_id": "GEM_002",
+      "creative_name": "Gemini - Best of AI in Workspace",
+      "passed": true,
+      "awareness_lift_pct": 5.7,
+      "awareness_significant": true,
+      "consideration_lift_pct": 5.3,
+      "consideration_significant": true,
+      "ad_recall_lift_pct": 5.6,
+      "ad_recall_significant": true,
+      "brand_recall_score": 78.0,
+      "message_clarity_score": 82.0,
+      "emotional_resonance_score": 62.0,
+      "attention_score": 75.0,
+      "uniqueness_score": 78.0,
+      "primary_kpi_lift": 5.7,
+      "primary_kpi_stat_sig": true
+    }
+  ],
+  "campaign": {
+    "id": "GEMINI_LAUNCH_Q1_2024",
+    "name": "Gemini Era Launch Campaign",
+    "brand": {
+      "name": "Gemini"
+    },
+    "product": "Gemini",
+    "quarter": "Q1",
+    "year": 2024
+  },
+  "total_creatives_tested": 2,
+  "creatives_passed": 2,
+  "pass_rate": 1.0,
+  "_meta": {
+    "results_id": "GEMINI_LAUNCH_Q1_2024_20260205_210815",
+    "campaign_id": "GEMINI_LAUNCH_Q1_2024",
+    "saved_at": "2026-02-05T21:08:15.178335",
+    "has_raw_csv": true
+  }
+}
