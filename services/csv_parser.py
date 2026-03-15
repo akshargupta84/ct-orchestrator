@@ -2,6 +2,7 @@
 CSV Parser Service.
 
 Handles parsing and validation of test results CSV files from the 3rd party vendor.
+Supports multiple column naming conventions.
 """
 
 import io
@@ -24,26 +25,61 @@ REQUIRED_COLUMNS = [
     "creative_id",
     "creative_name", 
     "asset_type",
-    "control_sample_size",
-    "exposed_sample_size",
 ]
+
+# Sample size columns - multiple possible names
+SAMPLE_SIZE_COLUMNS = {
+    "control": ["control_sample_size", "control_n", "control_size"],
+    "exposed": ["exposed_sample_size", "test_sample_size", "exposed_n", "test_n"],
+}
 
 # KPI columns (control, exposed, lift, stat_sig for each)
-KPI_COLUMNS = ["awareness", "consideration", "preference", "purchase_intent"]
+KPI_COLUMNS = ["awareness", "consideration", "preference", "purchase_intent", "ad_recall"]
 
-# Diagnostic metric columns
-DIAGNOSTIC_COLUMNS = [
-    "brand_strength",
-    "relevance", 
-    "emotional_engagement",
-    "uniqueness",
-    "credibility",
-    "call_to_action_clarity",
-    "brand_fit",
-    "message_clarity",
-    "likability",
-    "memorability",
-]
+# Column name variations for KPIs
+KPI_COLUMN_VARIANTS = {
+    "control": [
+        "control_{kpi}",
+        "control_{kpi}_pct",
+        "{kpi}_control",
+        "{kpi}_control_pct",
+    ],
+    "exposed": [
+        "exposed_{kpi}",
+        "test_{kpi}",
+        "exposed_{kpi}_pct",
+        "test_{kpi}_pct",
+        "{kpi}_exposed",
+        "{kpi}_test",
+    ],
+    "lift": [
+        "{kpi}_lift",
+        "{kpi}_lift_pct",
+        "lift_{kpi}",
+        "{kpi}_absolute_lift",
+    ],
+    "stat_sig": [
+        "{kpi}_stat_sig",
+        "{kpi}_significant",
+        "{kpi}_sig",
+        "stat_sig_{kpi}",
+        "significant_{kpi}",
+    ],
+}
+
+# Diagnostic metric columns - multiple possible names
+DIAGNOSTIC_COLUMNS = {
+    "brand_strength": ["brand_strength", "brand_recall_score", "brand_recall"],
+    "relevance": ["relevance", "relevance_score"],
+    "emotional_engagement": ["emotional_engagement", "emotional_resonance_score", "emotional_resonance"],
+    "uniqueness": ["uniqueness", "uniqueness_score"],
+    "credibility": ["credibility", "credibility_score"],
+    "call_to_action_clarity": ["call_to_action_clarity", "cta_clarity"],
+    "brand_fit": ["brand_fit", "brand_fit_score"],
+    "message_clarity": ["message_clarity", "message_clarity_score"],
+    "likability": ["likability", "likability_score"],
+    "memorability": ["memorability", "attention_score", "attention"],
+}
 
 
 class CSVValidationError(BaseModel):
@@ -120,6 +156,9 @@ class CSVParser:
         # Normalize column names
         df.columns = df.columns.str.lower().str.strip().str.replace(" ", "_")
         
+        # Store column mapping for later use
+        self._column_map = {}
+        
         # Validate required columns
         missing_cols = [col for col in REQUIRED_COLUMNS if col not in df.columns]
         if missing_cols:
@@ -127,15 +166,47 @@ class CSVParser:
                 error=f"Missing required columns: {', '.join(missing_cols)}"
             ))
         
-        # Check for KPI columns
+        # Find sample size columns
+        for sample_type, variants in SAMPLE_SIZE_COLUMNS.items():
+            found = None
+            for variant in variants:
+                if variant in df.columns:
+                    found = variant
+                    break
+            if found:
+                self._column_map[f"{sample_type}_sample_size"] = found
+            else:
+                # Not critical - will use default
+                warnings.append(f"No {sample_type} sample size column found, using default")
+        
+        # Check for KPI columns and build mapping
+        kpi_found = False
         for kpi in KPI_COLUMNS:
-            expected = [f"control_{kpi}", f"exposed_{kpi}", f"{kpi}_lift", f"{kpi}_stat_sig"]
-            present = [col for col in expected if col in df.columns]
-            if len(present) == 0:
-                warnings.append(f"No columns found for KPI: {kpi}")
-            elif len(present) < 4:
-                missing = [col for col in expected if col not in df.columns]
-                warnings.append(f"Incomplete columns for {kpi}: missing {', '.join(missing)}")
+            kpi_cols_found = {}
+            
+            for col_type, variants in KPI_COLUMN_VARIANTS.items():
+                for variant_template in variants:
+                    variant = variant_template.format(kpi=kpi)
+                    if variant in df.columns:
+                        kpi_cols_found[col_type] = variant
+                        break
+            
+            if kpi_cols_found:
+                kpi_found = True
+                self._column_map[kpi] = kpi_cols_found
+                
+                # Check completeness
+                missing_types = [t for t in ["lift", "stat_sig"] if t not in kpi_cols_found]
+                if missing_types:
+                    warnings.append(f"Incomplete columns for {kpi}: missing {', '.join(missing_types)}")
+            else:
+                # Only warn, not error
+                pass  # Not all KPIs need to be present
+        
+        if not kpi_found:
+            errors.append(CSVValidationError(
+                error="No KPI columns found. Need at least lift and stat_sig for one KPI."
+            ))
         
         if errors:
             return CSVParseResult(
@@ -193,9 +264,9 @@ class CSVParser:
         elif "display" in asset_type_str or "banner" in asset_type_str:
             asset_type = AssetType.DISPLAY
         else:
-            asset_type = AssetType.DISPLAY  # Default
+            asset_type = AssetType.VIDEO  # Default to video
         
-        # Helper to safely get float
+        # Helper to safely get float from row using possible column names
         def get_float(col: str, default: float = 0.0) -> float:
             val = row.get(col)
             if pd.isna(val):
@@ -205,7 +276,7 @@ class CSVParser:
             except (ValueError, TypeError):
                 return default
         
-        # Helper to safely get bool
+        # Helper to safely get bool from row
         def get_bool(col: str, default: bool = False) -> bool:
             val = row.get(col)
             if pd.isna(val):
@@ -217,26 +288,46 @@ class CSVParser:
             val_str = str(val).lower()
             return val_str in ("true", "yes", "1", "significant", "sig")
         
-        # Extract KPI data
-        control_awareness = get_float("control_awareness")
-        exposed_awareness = get_float("exposed_awareness")
-        awareness_lift = get_float("awareness_lift", exposed_awareness - control_awareness)
-        awareness_stat_sig = get_bool("awareness_stat_sig")
+        # Helper to get KPI value using the column mapping
+        def get_kpi_value(kpi: str, value_type: str, default=None):
+            """Get a KPI value using the column mapping."""
+            if kpi in self._column_map and value_type in self._column_map[kpi]:
+                col = self._column_map[kpi][value_type]
+                if value_type == "stat_sig":
+                    return get_bool(col, default if default is not None else False)
+                else:
+                    return get_float(col, default if default is not None else 0.0)
+            return default
         
-        control_consideration = get_float("control_consideration")
-        exposed_consideration = get_float("exposed_consideration")
-        consideration_lift = get_float("consideration_lift", exposed_consideration - control_consideration)
-        consideration_stat_sig = get_bool("consideration_stat_sig")
+        # Extract KPI data using mapping
+        control_awareness = get_kpi_value("awareness", "control", 0.0)
+        exposed_awareness = get_kpi_value("awareness", "exposed", 0.0)
+        awareness_lift = get_kpi_value("awareness", "lift", exposed_awareness - control_awareness if exposed_awareness else 0.0)
+        awareness_stat_sig = get_kpi_value("awareness", "stat_sig", False)
         
-        control_preference = get_float("control_preference") if "control_preference" in row else None
-        exposed_preference = get_float("exposed_preference") if "exposed_preference" in row else None
-        preference_lift = get_float("preference_lift") if "preference_lift" in row else None
-        preference_stat_sig = get_bool("preference_stat_sig") if "preference_stat_sig" in row else None
+        control_consideration = get_kpi_value("consideration", "control", 0.0)
+        exposed_consideration = get_kpi_value("consideration", "exposed", 0.0)
+        consideration_lift = get_kpi_value("consideration", "lift", exposed_consideration - control_consideration if exposed_consideration else 0.0)
+        consideration_stat_sig = get_kpi_value("consideration", "stat_sig", False)
         
-        control_purchase_intent = get_float("control_purchase_intent") if "control_purchase_intent" in row else None
-        exposed_purchase_intent = get_float("exposed_purchase_intent") if "exposed_purchase_intent" in row else None
-        purchase_intent_lift = get_float("purchase_intent_lift") if "purchase_intent_lift" in row else None
-        purchase_intent_stat_sig = get_bool("purchase_intent_stat_sig") if "purchase_intent_stat_sig" in row else None
+        control_preference = get_kpi_value("preference", "control")
+        exposed_preference = get_kpi_value("preference", "exposed")
+        preference_lift = get_kpi_value("preference", "lift")
+        preference_stat_sig = get_kpi_value("preference", "stat_sig")
+        
+        control_purchase_intent = get_kpi_value("purchase_intent", "control")
+        exposed_purchase_intent = get_kpi_value("purchase_intent", "exposed")
+        purchase_intent_lift = get_kpi_value("purchase_intent", "lift")
+        purchase_intent_stat_sig = get_kpi_value("purchase_intent", "stat_sig")
+        
+        # Also check for ad_recall
+        ad_recall_lift = get_kpi_value("ad_recall", "lift")
+        ad_recall_stat_sig = get_kpi_value("ad_recall", "stat_sig")
+        
+        # Check for "passed" column directly
+        passed_direct = None
+        if "passed" in row.index:
+            passed_direct = get_bool("passed")
         
         # Determine primary KPI values
         primary_kpi = self.primary_kpi
@@ -245,21 +336,30 @@ class CSVParser:
             KPIType.CONSIDERATION: (consideration_lift, consideration_stat_sig),
             KPIType.PREFERENCE: (preference_lift or 0, preference_stat_sig or False),
             KPIType.PURCHASE_INTENT: (purchase_intent_lift or 0, purchase_intent_stat_sig or False),
+            KPIType.AD_RECALL: (ad_recall_lift or 0, ad_recall_stat_sig or False),
         }
         primary_kpi_lift, primary_kpi_stat_sig = kpi_mapping.get(
             primary_kpi, (awareness_lift, awareness_stat_sig)
         )
         
-        # Parse diagnostic metrics
+        # Parse diagnostic metrics using flexible column names
         diagnostics = []
-        for diag_col in DIAGNOSTIC_COLUMNS:
-            if diag_col in row and not pd.isna(row[diag_col]):
-                diagnostics.append(DiagnosticMetric(
-                    name=diag_col,
-                    value=get_float(diag_col),
-                    benchmark=get_float(f"{diag_col}_benchmark") if f"{diag_col}_benchmark" in row else None,
-                    percentile=int(get_float(f"{diag_col}_percentile")) if f"{diag_col}_percentile" in row else None,
-                ))
+        for diag_name, variants in DIAGNOSTIC_COLUMNS.items():
+            for variant in variants:
+                if variant in row.index and not pd.isna(row[variant]):
+                    diagnostics.append(DiagnosticMetric(
+                        name=diag_name,
+                        value=get_float(variant),
+                        benchmark=None,
+                        percentile=None,
+                    ))
+                    break  # Found this diagnostic, move to next
+        
+        # Determine pass/fail
+        if passed_direct is not None:
+            passed = passed_direct
+        else:
+            passed = primary_kpi_stat_sig and primary_kpi_lift > 0
         
         return CreativeTestResult(
             creative_id=str(row["creative_id"]),
@@ -287,14 +387,15 @@ class CSVParser:
             purchase_intent_stat_sig=purchase_intent_stat_sig,
             
             primary_kpi=primary_kpi,
-            primary_kpi_lift=primary_kpi_lift,
-            primary_kpi_stat_sig=primary_kpi_stat_sig,
-            passed=primary_kpi_stat_sig and primary_kpi_lift > 0,
+            primary_kpi_lift=primary_kpi_lift or 0,
+            primary_kpi_stat_sig=primary_kpi_stat_sig or False,
+            
+            passed=passed,
             
             diagnostics=diagnostics,
             
-            control_sample_size=int(get_float("control_sample_size", 0)),
-            exposed_sample_size=int(get_float("exposed_sample_size", 0)),
+            control_sample_size=int(get_float(self._column_map.get("control_sample_size", "control_sample_size"), 500)),
+            exposed_sample_size=int(get_float(self._column_map.get("exposed_sample_size", "test_sample_size"), 500)),
         )
 
 

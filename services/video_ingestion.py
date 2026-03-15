@@ -222,10 +222,17 @@ class VideoIngestionService:
             else:
                 df = pd.read_excel(file_path, sheet_name=sheet_name)
         
-        # Normalize column names
-        df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_').str.replace('(', '').str.replace(')', '')
+        # Normalize column names - handle spaces, parentheses, special chars
+        df.columns = (df.columns
+            .str.lower()
+            .str.strip()
+            .str.replace(' ', '_', regex=False)
+            .str.replace('(', '', regex=False)
+            .str.replace(')', '', regex=False)
+            .str.replace('$', '', regex=False)
+        )
         
-        # Map common column variations
+        # Map common column variations - but only if target doesn't already exist
         column_map = {
             # Creative name
             'creative': 'creative_name',
@@ -239,7 +246,7 @@ class VideoIngestionService:
             'asset_id': 'creative_id',
             'video_id': 'creative_id',
             
-            # Channel
+            # Channel - only map if 'channel' doesn't exist
             'platform': 'channel',
             'placement': 'channel',
             'media_channel': 'channel',
@@ -254,7 +261,7 @@ class VideoIngestionService:
             'budget': 'spend',
             'cost': 'spend',
             'planned_spend': 'spend',
-            'spend_$': 'spend',
+            'spend_': 'spend',  # After removing $
             
             # Duration
             'length': 'duration_seconds',
@@ -264,23 +271,67 @@ class VideoIngestionService:
             'duration_s': 'duration_seconds',
         }
         
-        df = df.rename(columns={k: v for k, v in column_map.items() if k in df.columns})
+        # Only rename columns if the target column doesn't already exist
+        cols_to_rename = {}
+        for old_col, new_col in column_map.items():
+            if old_col in df.columns and new_col not in df.columns:
+                cols_to_rename[old_col] = new_col
+        
+        df = df.rename(columns=cols_to_rename)
+        
+        # Remove duplicate columns by keeping only the first occurrence
+        df = df.loc[:, ~df.columns.duplicated()]
         
         # Parse entries
         entries = []
+        
+        # Skip rows that are likely summary/total rows
+        summary_keywords = ['summary', 'total', 'subtotal', 'grand total', 'count:', 'sum:']
+        
+        # Helper function to safely get value from row
+        def safe_get(row, col, default=None):
+            """Safely get a value from a row, handling missing columns and NaN."""
+            if col not in row.index:
+                return default
+            val = row[col]
+            # Handle case where val might be a Series (shouldn't happen but just in case)
+            if hasattr(val, 'iloc'):
+                val = val.iloc[0] if len(val) > 0 else default
+            if pd.isna(val):
+                return default
+            return val
+        
         for _, row in df.iterrows():
-            name = str(row.get('creative_name', ''))
-            if not name or name == 'nan':
+            name = safe_get(row, 'creative_name', '')
+            name = str(name) if name else ''
+            
+            # Skip empty or NaN names
+            if not name or name == 'nan' or name.lower() == 'nan':
                 continue
+            
+            # Skip summary/header rows
+            if any(keyword in name.lower() for keyword in summary_keywords):
+                continue
+            
+            # Skip rows that look like labels (e.g., "Total Creatives:", "For Testing:")
+            if name.endswith(':'):
+                continue
+            
+            # Safely extract values
+            creative_id = safe_get(row, 'creative_id')
+            channel = safe_get(row, 'channel')
+            impressions = safe_get(row, 'impressions', 0)
+            spend = safe_get(row, 'spend', 0)
+            duration = safe_get(row, 'duration_seconds', 0)
             
             entry = MediaPlanEntry(
                 creative_name=name,
                 creative_name_clean=self._normalize_name(name),
-                creative_id=str(row.get('creative_id', '')) if pd.notna(row.get('creative_id')) else None,
-                channel=str(row.get('channel', '')) if pd.notna(row.get('channel')) else None,
-                impressions=int(row.get('impressions', 0)) if pd.notna(row.get('impressions')) else 0,
-                spend=float(row.get('spend', 0)) if pd.notna(row.get('spend')) else 0.0,
-                duration_seconds=int(row.get('duration_seconds', 0)) if pd.notna(row.get('duration_seconds')) else None,
+                creative_id=str(creative_id) if creative_id else None,
+                channel=str(channel) if channel else None,
+                impressions=int(float(impressions)) if impressions else 0,
+                spend=float(spend) if spend else 0.0,
+                duration_seconds=int(float(duration)) if duration else None,
             )
             entries.append(entry)
         
@@ -291,6 +342,12 @@ class VideoIngestionService:
         """
         Match ingested videos to media plan entries using fuzzy matching.
         
+        Uses multiple strategies:
+        1. Exact match on normalized names
+        2. Fuzzy match using token_sort_ratio
+        3. Partial matching for YouTube-style filenames
+        4. Bidirectional matching (video→plan and plan→video)
+        
         Returns:
             Dict with match results and unmatched items
         """
@@ -298,70 +355,162 @@ class VideoIngestionService:
             raise ImportError("rapidfuzz or fuzzywuzzy required. Install with: pip install rapidfuzz")
         
         matched = []
-        unmatched_videos = []
-        unmatched_plan_entries = []
+        matched_videos = set()
+        matched_entries = set()
         
-        # Create lookup for video names
-        video_names = {v.filename_clean: v for v in self.videos}
+        # Create lookups
+        video_by_clean_name = {v.filename_clean: v for v in self.videos}
+        entry_by_clean_name = {e.creative_name_clean: e for e in self.media_plan}
         
+        # Also create variant lookups for videos
+        video_variants = {}  # variant -> video
+        for video in self.videos:
+            variants = self._extract_title_variants(video.filename)
+            for variant in variants:
+                if variant not in video_variants:
+                    video_variants[variant] = video
+        
+        # Strategy 1: Exact match on normalized names
         for entry in self.media_plan:
-            # Try exact match first
-            if entry.creative_name_clean in video_names:
-                video = video_names[entry.creative_name_clean]
-                video.matched_to_media_plan = True
-                video.media_plan_row = {
-                    'creative_name': entry.creative_name,
-                    'channel': entry.channel,
-                    'impressions': entry.impressions,
-                    'spend': entry.spend,
-                }
-                entry.matched_video = video.filename
-                entry.match_confidence = 100.0
-                matched.append({
-                    'video': video.filename,
-                    'media_plan_entry': entry.creative_name,
-                    'confidence': 100.0,
-                    'match_type': 'exact'
-                })
+            if entry.creative_name_clean in video_by_clean_name:
+                video = video_by_clean_name[entry.creative_name_clean]
+                if video.filename not in matched_videos:
+                    self._record_match(video, entry, 100.0, 'exact', matched, matched_videos, matched_entries)
+        
+        # Strategy 2: Match video variants to media plan
+        for variant, video in video_variants.items():
+            if video.filename in matched_videos:
                 continue
             
-            # Try fuzzy match
-            best_match = process.extractOne(
-                entry.creative_name_clean,
-                list(video_names.keys()),
-                scorer=fuzz.token_sort_ratio
-            )
+            # Check if variant matches any media plan entry
+            if variant in entry_by_clean_name:
+                entry = entry_by_clean_name[variant]
+                if entry.creative_name not in matched_entries:
+                    self._record_match(video, entry, 95.0, 'variant_exact', matched, matched_videos, matched_entries)
+                    continue
             
-            if best_match and best_match[1] >= self.NAME_MATCH_THRESHOLD:
-                video = video_names[best_match[0]]
-                video.matched_to_media_plan = True
-                video.media_plan_row = {
-                    'creative_name': entry.creative_name,
-                    'channel': entry.channel,
-                    'impressions': entry.impressions,
-                    'spend': entry.spend,
-                }
-                entry.matched_video = video.filename
-                entry.match_confidence = best_match[1]
-                matched.append({
-                    'video': video.filename,
-                    'media_plan_entry': entry.creative_name,
-                    'confidence': best_match[1],
-                    'match_type': 'fuzzy'
-                })
-            else:
-                unmatched_plan_entries.append(entry)
+            # Fuzzy match variant to media plan entries
+            unmatched_entry_names = [e.creative_name_clean for e in self.media_plan if e.creative_name not in matched_entries]
+            if unmatched_entry_names:
+                best = process.extractOne(variant, unmatched_entry_names, scorer=fuzz.token_sort_ratio)
+                if best and best[1] >= self.NAME_MATCH_THRESHOLD:
+                    entry = entry_by_clean_name[best[0]]
+                    if entry.creative_name not in matched_entries:
+                        self._record_match(video, entry, best[1], 'variant_fuzzy', matched, matched_videos, matched_entries)
         
-        # Find unmatched videos
-        for video in self.videos:
-            if not video.matched_to_media_plan:
-                unmatched_videos.append(video)
+        # Strategy 3: Fuzzy match remaining media plan entries to video variants
+        for entry in self.media_plan:
+            if entry.creative_name in matched_entries:
+                continue
+            
+            # Get all unmatched video variants
+            unmatched_variants = [v for v, vid in video_variants.items() if vid.filename not in matched_videos]
+            if not unmatched_variants:
+                break
+            
+            best = process.extractOne(entry.creative_name_clean, unmatched_variants, scorer=fuzz.token_sort_ratio)
+            if best and best[1] >= self.NAME_MATCH_THRESHOLD:
+                video = video_variants[best[0]]
+                if video.filename not in matched_videos:
+                    self._record_match(video, entry, best[1], 'fuzzy', matched, matched_videos, matched_entries)
+        
+        # Strategy 4: Try partial matching with lower threshold for remaining
+        lower_threshold = 60  # More lenient
+        for entry in self.media_plan:
+            if entry.creative_name in matched_entries:
+                continue
+            
+            unmatched_variants = [v for v, vid in video_variants.items() if vid.filename not in matched_videos]
+            if not unmatched_variants:
+                break
+            
+            # Try token_set_ratio which is more lenient with extra words
+            best = process.extractOne(entry.creative_name_clean, unmatched_variants, scorer=fuzz.token_set_ratio)
+            if best and best[1] >= lower_threshold:
+                video = video_variants[best[0]]
+                if video.filename not in matched_videos:
+                    self._record_match(video, entry, best[1], 'partial', matched, matched_videos, matched_entries)
+        
+        # Collect unmatched items
+        unmatched_videos = [v for v in self.videos if v.filename not in matched_videos]
+        unmatched_plan_entries = [e for e in self.media_plan if e.creative_name not in matched_entries]
+        
+        # Store for manual matching
+        self._unmatched_videos = unmatched_videos
+        self._unmatched_plan_entries = unmatched_plan_entries
         
         return {
             'matched': matched,
             'unmatched_videos': [v.filename for v in unmatched_videos],
             'unmatched_plan_entries': [e.creative_name for e in unmatched_plan_entries],
             'match_rate': len(matched) / len(self.media_plan) * 100 if self.media_plan else 0
+        }
+    
+    def _record_match(self, video, entry, confidence, match_type, matched_list, matched_videos, matched_entries):
+        """Record a match between video and media plan entry."""
+        video.matched_to_media_plan = True
+        video.media_plan_row = {
+            'creative_name': entry.creative_name,
+            'channel': entry.channel,
+            'impressions': entry.impressions,
+            'spend': entry.spend,
+        }
+        entry.matched_video = video.filename
+        entry.match_confidence = confidence
+        
+        matched_list.append({
+            'video': video.filename,
+            'media_plan_entry': entry.creative_name,
+            'confidence': confidence,
+            'match_type': match_type
+        })
+        
+        matched_videos.add(video.filename)
+        matched_entries.add(entry.creative_name)
+    
+    def manual_match(self, video_filename: str, media_plan_entry_name: str) -> bool:
+        """
+        Manually match a video to a media plan entry.
+        
+        Args:
+            video_filename: The filename of the video
+            media_plan_entry_name: The creative name from the media plan
+            
+        Returns:
+            True if match was successful
+        """
+        video = None
+        entry = None
+        
+        for v in self.videos:
+            if v.filename == video_filename:
+                video = v
+                break
+        
+        for e in self.media_plan:
+            if e.creative_name == media_plan_entry_name:
+                entry = e
+                break
+        
+        if video and entry:
+            video.matched_to_media_plan = True
+            video.media_plan_row = {
+                'creative_name': entry.creative_name,
+                'channel': entry.channel,
+                'impressions': entry.impressions,
+                'spend': entry.spend,
+            }
+            entry.matched_video = video.filename
+            entry.match_confidence = 100.0  # Manual match
+            return True
+        
+        return False
+    
+    def get_unmatched_for_manual_matching(self) -> dict:
+        """Get unmatched videos and media plan entries for manual matching UI."""
+        return {
+            'unmatched_videos': [v.filename for v in getattr(self, '_unmatched_videos', [])],
+            'unmatched_plan_entries': [e.creative_name for e in getattr(self, '_unmatched_plan_entries', [])]
         }
     
     def detect_similar_videos(self) -> list[SimilarityGroup]:
@@ -542,17 +691,60 @@ class VideoIngestionService:
         """Normalize a filename/creative name for matching."""
         # Remove extension
         name = os.path.splitext(name)[0]
+        
+        # Handle YouTube-style filenames: "Title | Subtitle [VideoID]"
+        # Extract the main title before | or first [
+        if '|' in name:
+            name = name.split('|')[0]
+        if '[' in name:
+            name = name.split('[')[0]
+        
         # Lowercase
         name = name.lower()
+        
         # Remove common suffixes
         name = re.sub(r'_v\d+$', '', name)
         name = re.sub(r'_final$', '', name)
         name = re.sub(r'_rev\d*$', '', name)
+        
         # Replace separators with spaces
         name = re.sub(r'[_\-\.]+', ' ', name)
+        
         # Remove extra whitespace
         name = ' '.join(name.split())
+        
         return name
+    
+    def _extract_title_variants(self, name: str) -> list[str]:
+        """Extract multiple title variants from a filename for better matching."""
+        variants = []
+        
+        # Remove extension first
+        name = os.path.splitext(name)[0]
+        
+        # Original (normalized)
+        variants.append(self._normalize_name(name))
+        
+        # If has YouTube-style format, also try the subtitle part
+        if '|' in name:
+            parts = name.split('|')
+            # Main title
+            variants.append(self._normalize_name(parts[0]))
+            # Subtitle (without video ID)
+            if len(parts) > 1:
+                subtitle = parts[1].split('[')[0].strip()
+                if subtitle:
+                    variants.append(self._normalize_name(subtitle))
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_variants = []
+        for v in variants:
+            if v and v not in seen:
+                seen.add(v)
+                unique_variants.append(v)
+        
+        return unique_variants
     
     def _get_frame_hash(self, cap, frame_num: int) -> Optional[str]:
         """Get perceptual hash of a specific frame."""

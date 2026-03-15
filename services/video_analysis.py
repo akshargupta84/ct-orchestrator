@@ -550,7 +550,7 @@ def generate_analysis_report(features: VideoFeatures) -> str:
 - **Screen Coverage:** {features.human_screen_time_percentage:.1f}% average
 - **Demographics:** {', '.join(features.primary_demographics) or 'N/A'}
 - **Emotions:** {', '.join(features.primary_emotions) or 'N/A'}
-- **First Appearance:** {features.first_human_appearance:.1f}s if features.first_human_appearance else 'N/A'}
+- **First Appearance:** {f'{features.first_human_appearance:.1f}s' if features.first_human_appearance else 'N/A'}
 
 ## Brand Elements
 - **Logo Visible:** {features.logo_presence_percentage:.1f}% of video
@@ -563,7 +563,7 @@ def generate_analysis_report(features: VideoFeatures) -> str:
 - **Text Overlays:** {features.text_overlay_percentage:.1f}% of video
 - **Has CTA:** {'Yes' if features.has_cta else 'No'}
 - **CTA Text:** {features.cta_text or 'N/A'}
-- **CTA Timing:** {features.cta_appears_at_second:.1f}s if features.cta_appears_at_second else 'N/A'}
+- **CTA Timing:** {f'{features.cta_appears_at_second:.1f}s' if features.cta_appears_at_second else 'N/A'}
 
 ## Pacing & Composition
 - **Scene Count:** {features.scene_count}

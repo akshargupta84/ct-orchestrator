@@ -6,6 +6,8 @@ Allows users to:
 2. Upload test results CSV
 3. View analysis and recommendations
 4. Generate reports
+5. Save results with persistence
+6. Advanced AI-powered analysis
 """
 
 import streamlit as st
@@ -21,6 +23,27 @@ from agents.analysis_agent import AnalysisAgent
 from services.report_generator import ReportGenerator
 from services.vector_store import get_vector_store
 from models import KPIType, TestResults
+
+# Try to import persistence service
+try:
+    from services.persistence import get_persistence_service
+    PERSISTENCE_AVAILABLE = True
+except ImportError:
+    PERSISTENCE_AVAILABLE = False
+
+# Try to import advanced analytics
+try:
+    from services.advanced_analytics import get_analytics_service, AdvancedAnalysisResult
+    ADVANCED_ANALYTICS_AVAILABLE = True
+except ImportError:
+    ADVANCED_ANALYTICS_AVAILABLE = False
+
+# Try to import LLM utilities
+try:
+    from utils.llm import is_llm_available, synthesize_analysis
+    LLM_AVAILABLE = True
+except ImportError:
+    LLM_AVAILABLE = False
 
 
 def save_results_to_vector_store(results: TestResults, campaign: dict, plan_id: str):
@@ -125,7 +148,12 @@ def render_plans_list():
         campaign = plan.get("campaign", {})
         creatives = plan.get("creatives", [])
         
-        with st.expander(f"**{campaign.get('name', 'Unnamed')}** - {plan.get('status', 'unknown').title()}", expanded=False):
+        # Get quarter info
+        quarter = campaign.get('quarter', '')
+        year = campaign.get('year', '')
+        quarter_str = f" ({quarter} {year})" if quarter and year else ""
+        
+        with st.expander(f"**{campaign.get('name', 'Unnamed')}{quarter_str}** - {plan.get('status', 'unknown').title()}", expanded=False):
             col1, col2, col3 = st.columns(3)
             
             with col1:
@@ -141,8 +169,14 @@ def render_plans_list():
             with col3:
                 st.markdown(f"**Created:** {plan.get('created_at', 'N/A')}")
                 
-                # Check if results exist
-                if plan_id in st.session_state.test_results:
+                # Check if results exist - extract campaign_id from plan_id
+                campaign_id = campaign.get('id', plan_id.split('_2')[0] if '_2' in plan_id else plan_id)
+                has_results = (
+                    plan_id in st.session_state.test_results or 
+                    campaign_id in st.session_state.test_results
+                )
+                
+                if has_results:
                     st.success("✓ Results uploaded")
                 else:
                     st.warning("⏳ Awaiting results")
@@ -200,8 +234,27 @@ def render_results_upload():
     )
     
     if uploaded_file:
-        # Parse CSV
-        primary_kpi = KPIType(campaign.get("primary_kpi", "awareness"))
+        # Parse CSV - handle KPI type conversion gracefully
+        kpi_value = campaign.get("primary_kpi", "awareness")
+        
+        # Map common variations to valid enum values
+        kpi_mapping = {
+            "brand_awareness": "awareness",
+            "brand awareness": "awareness",
+            "awareness": "awareness",
+            "consideration": "consideration",
+            "purchase_intent": "purchase_intent",
+            "purchase intent": "purchase_intent",
+            "ad_recall": "ad_recall",
+            "ad recall": "ad_recall",
+        }
+        kpi_value = kpi_mapping.get(kpi_value.lower(), "awareness") if isinstance(kpi_value, str) else "awareness"
+        
+        try:
+            primary_kpi = KPIType(kpi_value)
+        except ValueError:
+            primary_kpi = KPIType.AWARENESS  # Default fallback
+        
         parser = CSVParser(primary_kpi=primary_kpi)
         
         result = parser.parse(
@@ -258,13 +311,54 @@ def render_results_upload():
                 plan_id=selected_plan_id
             )
             
-            st.success("Results saved! View the Analysis tab for recommendations.")
+            # Save to disk if persistence is available
+            if PERSISTENCE_AVAILABLE:
+                try:
+                    persistence = get_persistence_service()
+                    
+                    # Convert results to dict for JSON serialization
+                    results_dict = {
+                        'total_creatives_tested': result.results.total_creatives_tested,
+                        'creatives_passed': result.results.creatives_passed,
+                        'creatives_failed': result.results.creatives_failed,
+                        'pass_rate': result.results.pass_rate,
+                        'results': [
+                            {
+                                'creative_name': r.creative_name,
+                                'creative_id': r.creative_id,
+                                'asset_type': r.asset_type.value,
+                                'channel': r.channel.value if r.channel else None,
+                                'primary_kpi_lift': r.primary_kpi_lift,
+                                'primary_kpi_stat_sig': r.primary_kpi_stat_sig,
+                                'passed': r.passed,
+                            }
+                            for r in result.results.results
+                        ],
+                        'campaign': campaign,
+                        'plan_id': selected_plan_id,
+                    }
+                    
+                    # Get raw CSV content
+                    uploaded_file.seek(0)
+                    raw_csv = uploaded_file.read()
+                    
+                    results_id = persistence.save_results(
+                        campaign_id=campaign.get('id', 'unknown'),
+                        results_data=results_dict,
+                        raw_csv_content=raw_csv
+                    )
+                    st.success(f"Results saved! ✅ Persisted to disk (ID: {results_id})")
+                except Exception as e:
+                    st.warning(f"Results saved to session but disk persistence failed: {e}")
+            else:
+                st.success("Results saved! View the Analysis tab for recommendations.")
+            
             st.info("💡 These results are now searchable in the Insights tab.")
             st.rerun()
 
 
 def render_analysis():
-    """Render analysis and recommendations."""
+    """Render analysis and recommendations with advanced analytics."""
     st.markdown("### Analysis & Recommendations")
     
     if not st.session_state.test_results:
@@ -275,8 +369,54 @@ def render_analysis():
     result_options = {}
     for plan_id, results in st.session_state.test_results.items():
         plan = st.session_state.test_plans.get(plan_id, {})
-        campaign_name = plan.get("campaign", {}).get("name", "Unknown")
-        result_options[plan_id] = f"{campaign_name} ({results.total_creatives_tested} creatives)"
+        campaign_name = plan.get("campaign", {}).get("name", "")
+        quarter = plan.get("campaign", {}).get("quarter", "")
+        year = plan.get("campaign", {}).get("year", "")
+        
+        # If no campaign name from plan, try to get from results
+        if not campaign_name and isinstance(results, dict):
+            campaign_name = results.get('campaign_name', '')
+            if not campaign_name:
+                campaign_name = results.get('campaign', {}).get('name', '')
+        
+        # Get quarter from results if not in plan
+        if not quarter and isinstance(results, dict):
+            quarter = results.get('campaign', {}).get('quarter', '')
+            if not quarter:
+                # Try to extract from test_date
+                test_date = results.get('test_date', '')
+                if test_date:
+                    try:
+                        month = int(test_date.split('-')[1])
+                        quarter = f"Q{(month - 1) // 3 + 1}"
+                    except:
+                        pass
+        
+        if not year and isinstance(results, dict):
+            year = results.get('campaign', {}).get('year', '')
+            if not year:
+                test_date = results.get('test_date', '')
+                if test_date:
+                    try:
+                        year = test_date.split('-')[0]
+                    except:
+                        pass
+        
+        if not campaign_name:
+            campaign_name = "Unknown"
+        
+        # Build display name with quarter
+        quarter_str = f" ({quarter} {year})" if quarter and year else (f" ({quarter})" if quarter else "")
+        
+        # Handle both TestResults object and dict
+        if hasattr(results, 'total_creatives_tested'):
+            count = results.total_creatives_tested
+        elif isinstance(results, dict):
+            count = len(results.get('results', []))
+        else:
+            count = 0
+            
+        result_options[plan_id] = f"{campaign_name}{quarter_str} ({count} creatives)"
     
     selected_result_id = st.selectbox(
         "Select Results to Analyze",
@@ -291,16 +431,128 @@ def render_analysis():
     plan = st.session_state.test_plans.get(selected_result_id, {})
     campaign = plan.get("campaign", {})
     
+    # Convert results to dict format for analysis
+    if hasattr(results, 'results'):
+        results_data = {
+            'results': [
+                {
+                    'creative_name': r.creative_name,
+                    'creative_id': r.creative_id,
+                    'passed': r.passed,
+                    'primary_kpi_lift': r.primary_kpi_lift,
+                    'primary_kpi_stat_sig': r.primary_kpi_stat_sig,
+                    'awareness_lift_pct': getattr(r, 'awareness_lift', 0),
+                    'awareness_significant': getattr(r, 'awareness_stat_sig', False),
+                }
+                for r in results.results
+            ]
+        }
+        # Add diagnostic scores if available
+        for i, r in enumerate(results.results):
+            if hasattr(r, 'diagnostics') and r.diagnostics:
+                for d in r.diagnostics:
+                    results_data['results'][i][d.name] = d.value
+    elif isinstance(results, dict):
+        results_data = results
+    else:
+        st.error("Invalid results format")
+        return
+    
     st.markdown("---")
     
-    # Run analysis
-    with st.spinner("Analyzing results..."):
-        agent = AnalysisAgent()
-        recommendations = agent.analyze_results(results)
+    # Run advanced analysis if available
+    advanced_result = None
+    if ADVANCED_ANALYTICS_AVAILABLE:
+        with st.spinner("Running advanced analysis..."):
+            try:
+                analytics = get_analytics_service()
+                advanced_result = analytics.analyze(results_data)
+            except Exception as e:
+                st.warning(f"Advanced analytics error: {e}")
     
-    # Summary
+    # Basic analysis fallback
+    agent = AnalysisAgent()
+    if hasattr(results, 'results'):
+        recommendations = agent.analyze_results(results)
+    else:
+        recommendations = None
+    
+    # Summary using advanced analysis if available
     st.markdown("#### Summary")
     
+    if advanced_result and advanced_result.creative_analyses:
+        _render_advanced_summary(advanced_result)
+    elif recommendations:
+        _render_basic_summary(recommendations)
+    
+    st.markdown("---")
+    
+    # Detailed recommendations
+    st.markdown("#### Detailed Analysis")
+    
+    if advanced_result and advanced_result.creative_analyses:
+        _render_advanced_details(advanced_result)
+    elif recommendations:
+        _render_basic_details(recommendations)
+    
+    st.markdown("---")
+    
+    # Advanced insights section
+    if advanced_result:
+        _render_advanced_insights(advanced_result)
+        st.markdown("---")
+    
+    # Report generation
+    _render_report_section(results, recommendations, advanced_result, campaign)
+
+
+def _render_advanced_summary(result: 'AdvancedAnalysisResult'):
+    """Render summary using advanced analysis results."""
+    col1, col2, col3 = st.columns(3)
+    
+    run_creatives = [a for a in result.creative_analyses if a.category == "run"]
+    do_not_run = [a for a in result.creative_analyses if a.category == "do_not_run"]
+    optimize = [a for a in result.creative_analyses if a.category == "optimize_retest"]
+    
+    with col1:
+        st.markdown("##### ✓ Run These")
+        if run_creatives:
+            for a in run_creatives:
+                st.success(f"**{a.creative_name}**")
+                st.caption(f"Lift: {a.lift:.1f}% (stat sig) | {a.percentile_rank:.0f}th percentile")
+                if a.strong_areas:
+                    strengths = ", ".join([s['metric'].replace('_score', '').replace('_', ' ') for s in a.strong_areas[:2]])
+                    st.caption(f"Strengths: {strengths}")
+        else:
+            st.warning("No creatives passed")
+    
+    with col2:
+        st.markdown("##### ✗ Do Not Run")
+        if do_not_run:
+            for a in do_not_run:
+                st.error(f"**{a.creative_name}**")
+                st.caption(f"Lift: {a.lift:.1f}% | Stat sig negative or near-zero lift")
+                if a.weak_areas:
+                    weaknesses = ", ".join([w['metric'].replace('_score', '').replace('_', ' ') for w in a.weak_areas[:2]])
+                    st.caption(f"Weak areas: {weaknesses}")
+        else:
+            st.success("No creatives in this category")
+    
+    with col3:
+        st.markdown("##### 🔄 Optimize & Retest")
+        if optimize:
+            for a in optimize:
+                st.warning(f"**{a.creative_name}**")
+                st.caption(f"Lift: {a.lift:.1f}% (not stat sig)")
+                if a.specific_recommendations:
+                    rec = a.specific_recommendations[0]
+                    st.caption(f"Fix: {rec['recommendation'][:80]}...")
+        else:
+            st.info("No creatives flagged for optimization")
+
+
+def _render_basic_summary(recommendations):
+    """Render basic summary from analysis agent."""
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -323,7 +575,7 @@ def render_analysis():
                     st.error(f"**{rec.creative_name}**")
                     st.caption(rec.rationale[:100] + "..." if len(rec.rationale) > 100 else rec.rationale)
         else:
-            st.success("All creatives passed!")
+            st.success("No creatives in this category")
     
     with col3:
         st.markdown("##### 🔄 Optimize & Retest")
@@ -335,12 +587,82 @@ def render_analysis():
                     st.caption(rec.rationale[:100] + "..." if len(rec.rationale) > 100 else rec.rationale)
         else:
             st.info("No creatives flagged for optimization")
-    
-    st.markdown("---")
-    
-    # Detailed recommendations
-    st.markdown("#### Detailed Analysis")
-    
+
+
+def _render_advanced_details(result: 'AdvancedAnalysisResult'):
+    """Render detailed analysis using advanced analytics."""
+    for analysis in result.creative_analyses:
+        if analysis.category == "run":
+            status_icon = "🟢"
+            status_text = "Run"
+        elif analysis.category == "do_not_run":
+            status_icon = "🔴"
+            status_text = "Do Not Run"
+        else:
+            status_icon = "🟡"
+            status_text = "Optimize & Retest"
+        
+        with st.expander(f"{status_icon} {analysis.creative_name} - {status_text}"):
+            # Metrics row
+            cols = st.columns(4)
+            with cols[0]:
+                st.metric("Lift", f"{analysis.lift:.1f}%")
+            with cols[1]:
+                st.metric("Stat Sig", "Yes" if analysis.stat_sig else "No")
+            with cols[2]:
+                st.metric("Percentile", f"{analysis.percentile_rank:.0f}th")
+            with cols[3]:
+                st.metric("Pass Prob", f"{analysis.predicted_pass_probability * 100:.0f}%")
+            
+            # Diagnostic breakdown
+            if analysis.diagnostic_benchmarks:
+                st.markdown("**Diagnostic Scores vs Benchmarks:**")
+                diag_data = []
+                for metric, bench in analysis.diagnostic_benchmarks.items():
+                    score = bench.get('score', 0)
+                    benchmark = bench.get('benchmark', 50)
+                    vs_bench = bench.get('vs_benchmark', 0)
+                    
+                    status = "✅" if vs_bench >= 0 else "⚠️" if vs_bench > -10 else "❌"
+                    diag_data.append({
+                        'Status': status,
+                        'Metric': metric.replace('_score', '').replace('_', ' ').title(),
+                        'Score': score,
+                        'Benchmark': benchmark,
+                        'vs Bench': f"{vs_bench:+.0f}",
+                    })
+                
+                st.dataframe(pd.DataFrame(diag_data), hide_index=True, use_container_width=True)
+            
+            # Strengths and Weaknesses
+            col1, col2 = st.columns(2)
+            with col1:
+                if analysis.strong_areas:
+                    st.markdown("**Strengths:**")
+                    for s in analysis.strong_areas:
+                        st.markdown(f"- ✅ {s['metric'].replace('_score', '').replace('_', ' ').title()}: {s['score']:.0f}")
+            
+            with col2:
+                if analysis.weak_areas:
+                    st.markdown("**Areas for Improvement:**")
+                    for w in analysis.weak_areas:
+                        st.markdown(f"- ⚠️ {w['metric'].replace('_score', '').replace('_', ' ').title()}: {w['score']:.0f} (benchmark: {w['benchmark']})")
+            
+            # Specific recommendations
+            if analysis.specific_recommendations:
+                st.markdown("**Recommendations:**")
+                for rec in analysis.specific_recommendations:
+                    priority = rec.get('priority', 'medium')
+                    if priority == 'high':
+                        st.markdown(f"- 🔴 **{rec['recommendation']}**")
+                    else:
+                        st.markdown(f"- {rec['recommendation']}")
+                    if rec.get('rationale'):
+                        st.caption(f"  _{rec['rationale']}_")
+
+
+def _render_basic_details(recommendations):
+    """Render basic detailed analysis."""
     for rec in recommendations.recommendations:
         status_color = "🟢" if rec.recommendation == "run" else "🔴" if rec.recommendation == "do_not_run" else "🟡"
         
@@ -357,34 +679,171 @@ def render_analysis():
                 st.markdown("**Suggested Improvements:**")
                 for improvement in rec.suggested_improvements:
                     st.markdown(f"- {improvement}")
+
+
+def _render_advanced_insights(result: 'AdvancedAnalysisResult'):
+    """Render advanced insights section."""
+    st.markdown("#### 🔬 Advanced Insights")
     
-    st.markdown("---")
+    # Key findings
+    if result.key_findings:
+        st.markdown("##### Key Findings")
+        for finding in result.key_findings:
+            st.info(f"**{finding['finding']}**\n\n_{finding['implication']}_")
     
-    # Long-term recommendations
-    if recommendations.long_term_recommendations:
-        st.markdown("#### Long-Term Recommendations")
-        for rec in recommendations.long_term_recommendations:
-            st.info(rec)
+    # Statistical analysis
+    tabs = st.tabs(["📊 Statistics", "📈 Patterns", "🎯 Optimization Playbook"])
     
-    # Meta insights
-    if recommendations.meta_insights:
-        st.markdown("#### Meta Insights")
-        for insight in recommendations.meta_insights:
-            st.markdown(f"- {insight}")
+    with tabs[0]:
+        stats = result.statistical
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**Lift Statistics:**")
+            if stats.lift_statistics:
+                for key, val in stats.lift_statistics.items():
+                    st.write(f"- {key.title()}: {val}%")
+            
+            if stats.confidence_intervals.get('lift_95ci'):
+                ci = stats.confidence_intervals['lift_95ci']
+                st.write(f"- 95% CI: [{ci['lower']}, {ci['upper']}]%")
+        
+        with col2:
+            st.markdown("**Correlations with Lift:**")
+            if stats.correlations:
+                corr_data = [
+                    {
+                        'Metric': k.replace('_score', '').replace('_', ' ').title(),
+                        'Correlation': v,
+                        'Strength': '🟢 Strong' if abs(v) > 0.5 else '🟡 Moderate' if abs(v) > 0.3 else '⚪ Weak'
+                    }
+                    for k, v in stats.correlations.items()
+                    if isinstance(v, (int, float))
+                ]
+                if corr_data:
+                    st.dataframe(pd.DataFrame(corr_data), hide_index=True)
+        
+        if stats.significant_differences:
+            st.markdown("**Significant Differences (Pass vs Fail):**")
+            diff_data = [
+                {
+                    'Metric': d['metric'].replace('_score', '').replace('_', ' ').title(),
+                    'Passed Avg': d['passed_mean'],
+                    'Failed Avg': d['failed_mean'],
+                    'Difference': d['difference'],
+                    'Effect': d['effect_magnitude'].title(),
+                }
+                for d in stats.significant_differences
+            ]
+            st.dataframe(pd.DataFrame(diff_data), hide_index=True, use_container_width=True)
     
-    st.markdown("---")
+    with tabs[1]:
+        patterns = result.patterns
+        
+        if patterns.feature_importance:
+            st.markdown("**Feature Importance (Random Forest):**")
+            imp_data = [
+                {'Feature': k.replace('_score', '').replace('_', ' ').title(), 'Importance': f"{v*100:.1f}%"}
+                for k, v in patterns.feature_importance.items()
+            ]
+            st.dataframe(pd.DataFrame(imp_data), hide_index=True)
+        
+        if patterns.decision_rules:
+            st.markdown("**Decision Rules:**")
+            for rule in patterns.decision_rules:
+                st.code(rule['readable'], language=None)
+        
+        if patterns.clusters:
+            st.markdown("**Creative Clusters:**")
+            for cluster in patterns.clusters:
+                with st.expander(f"Cluster {cluster['cluster_id'] + 1}: {cluster['pass_rate']}% pass rate"):
+                    st.write(f"**Size:** {cluster['size']} creatives")
+                    st.write(f"**Avg Lift:** {cluster['avg_lift']}%")
+                    st.write(f"**Creatives:** {', '.join(cluster['creatives'])}")
+                    if cluster['characteristics']:
+                        st.write("**Characteristics:**")
+                        for k, v in cluster['characteristics'].items():
+                            st.write(f"  - {k.replace('_score', '').replace('_', ' ').title()}: {v}")
     
-    # Report generation
+    with tabs[2]:
+        if result.optimization_playbook:
+            st.markdown("**Optimization Playbook**")
+            st.markdown("_Based on pattern analysis, focus on these areas:_")
+            
+            for item in result.optimization_playbook:
+                with st.expander(f"📌 {item['metric']} (Importance: {item['importance']})"):
+                    st.write(f"**Target Threshold:** {item.get('threshold', 'N/A')}")
+                    st.write("**Recommendations:**")
+                    for rec in item.get('recommendations', []):
+                        st.write(f"- {rec}")
+        else:
+            st.info("Optimization playbook requires more data to generate meaningful recommendations.")
+
+
+def _render_report_section(results, recommendations, advanced_result, campaign):
+    """Render report generation section."""
     st.markdown("#### Generate Report")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("Generate PowerPoint Report", type="primary"):
+        if st.button("Generate PowerPoint Report", type="secondary"):
             try:
+                # Convert dict to TestResults if needed
+                if isinstance(results, dict):
+                    from models import TestResults, CreativeTestResult, AssetType, KPIType, DiagnosticMetric
+                    
+                    results_list = results.get('results', [])
+                    creative_results = []
+                    for r in results_list:
+                        # Build diagnostic metrics
+                        diagnostics = []
+                        for score_name in ['attention_score', 'brand_recall_score', 'message_clarity_score', 
+                                          'emotional_resonance_score', 'uniqueness_score']:
+                            if score_name in r and r[score_name]:
+                                diagnostics.append(DiagnosticMetric(
+                                    name=score_name.replace('_score', ''),
+                                    value=float(r[score_name]),
+                                    benchmark=65,
+                                ))
+                        
+                        creative_results.append(CreativeTestResult(
+                            creative_id=r.get('creative_id', 'unknown'),
+                            creative_name=r.get('creative_name', 'Unknown'),
+                            asset_type=AssetType.VIDEO,
+                            control_awareness=0,
+                            control_consideration=0,
+                            exposed_awareness=r.get('awareness_lift_pct', 0),
+                            exposed_consideration=r.get('consideration_lift_pct', 0),
+                            awareness_lift=r.get('awareness_lift_pct', 0),
+                            consideration_lift=r.get('consideration_lift_pct', 0),
+                            awareness_stat_sig=r.get('awareness_significant', False),
+                            consideration_stat_sig=r.get('consideration_significant', False),
+                            primary_kpi=KPIType.AWARENESS,
+                            primary_kpi_lift=r.get('awareness_lift_pct', r.get('primary_kpi_lift', 0)),
+                            primary_kpi_stat_sig=r.get('awareness_significant', r.get('primary_kpi_stat_sig', False)),
+                            passed=r.get('passed', False),
+                            diagnostics=diagnostics,
+                            control_sample_size=750,
+                            exposed_sample_size=400,
+                        ))
+                    
+                    results_obj = TestResults(
+                        id=results.get('campaign_id', 'unknown'),
+                        campaign_id=results.get('campaign_id', 'unknown'),
+                        test_plan_id=results.get('plan_id', 'unknown'),
+                        results=creative_results,
+                        total_creatives_tested=len(creative_results),
+                        creatives_passed=sum(1 for r in creative_results if r.passed),
+                        creatives_failed=sum(1 for r in creative_results if not r.passed),
+                    )
+                else:
+                    results_obj = results
+                
                 generator = ReportGenerator()
                 report_path = generator.generate_report(
-                    results=results,
+                    results=results_obj,
                     recommendations=recommendations,
                     campaign_name=campaign.get("name", "Campaign"),
                     brand_name=campaign.get("brand", {}).get("name", "Brand")
@@ -402,25 +861,53 @@ def render_analysis():
                 
             except Exception as e:
                 st.warning(f"Could not generate PowerPoint: {e}")
-                st.info("Generating markdown report instead...")
-                
-                markdown_report = generator.generate_simple_report(
-                    results=results,
-                    recommendations=recommendations,
-                    campaign_name=campaign.get("name", "Campaign")
-                )
-                
-                st.download_button(
-                    "Download Markdown Report",
-                    data=markdown_report,
-                    file_name=f"CT_Report_{campaign.get('name', 'Campaign').replace(' ', '_')}.md",
-                    mime="text/markdown"
-                )
+                st.info("Try the Markdown report option or AI-generated analysis instead.")
     
     with col2:
-        if st.button("Generate Detailed Analysis (AI)"):
-            with st.spinner("Generating detailed analysis..."):
-                detailed = agent.generate_detailed_analysis(results)
-            
-            st.markdown("#### AI-Generated Analysis")
-            st.markdown(detailed)
+        # AI-powered detailed analysis
+        if st.button("🤖 Generate AI Analysis", type="primary"):
+            if not LLM_AVAILABLE or not is_llm_available():
+                st.error("AI analysis requires Anthropic API key. Set ANTHROPIC_API_KEY environment variable or configure in Admin page.")
+            elif not advanced_result:
+                st.error("Advanced analytics must run first. Please refresh the page.")
+            else:
+                with st.spinner("Generating AI-powered analysis (this may take 30-60 seconds)..."):
+                    try:
+                        # Prepare analysis data for Claude
+                        analysis_dict = {
+                            'statistical': advanced_result.statistical.__dict__ if hasattr(advanced_result.statistical, '__dict__') else {},
+                            'historical': advanced_result.historical.__dict__ if hasattr(advanced_result.historical, '__dict__') else {},
+                            'patterns': advanced_result.patterns.__dict__ if hasattr(advanced_result.patterns, '__dict__') else {},
+                            'recommendations': [
+                                a.__dict__ if hasattr(a, '__dict__') else a
+                                for a in advanced_result.creative_analyses
+                            ],
+                            'raw_data': {
+                                'primary_kpi': 'awareness',
+                                'results_df': [
+                                    a.__dict__ if hasattr(a, '__dict__') else a
+                                    for a in advanced_result.creative_analyses
+                                ],
+                            }
+                        }
+                        
+                        ai_report = synthesize_analysis(
+                            analysis_results=analysis_dict,
+                            campaign_name=campaign.get("name", "Unknown Campaign")
+                        )
+                        
+                        st.markdown("#### 🤖 AI-Generated Analysis Report")
+                        st.markdown(ai_report)
+                        
+                        # Download option
+                        st.download_button(
+                            "📥 Download Report (Markdown)",
+                            data=ai_report,
+                            file_name=f"AI_Analysis_{campaign.get('name', 'Campaign').replace(' ', '_')}.md",
+                            mime="text/markdown"
+                        )
+                        
+                    except ValueError as e:
+                        st.error(f"API Error: {e}")
+                    except Exception as e:
+                        st.error(f"Error generating AI analysis: {e}")

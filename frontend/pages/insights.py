@@ -7,6 +7,8 @@ Chat interface for:
 3. Getting recommendations
 4. Meta-analysis across campaigns
 5. Performance driver analysis (creative features → lift)
+6. ML model insights (trained predictors)
+7. Persistent chat history
 """
 
 import streamlit as st
@@ -26,6 +28,20 @@ try:
 except ImportError:
     MODELING_AVAILABLE = False
 
+# Try to import persistence service
+try:
+    from services.persistence import get_persistence_service
+    PERSISTENCE_AVAILABLE = True
+except ImportError:
+    PERSISTENCE_AVAILABLE = False
+
+# Try to import prediction model for ML insights
+try:
+    from services.prediction_model import get_prediction_model
+    PREDICTION_MODEL_AVAILABLE = True
+except ImportError:
+    PREDICTION_MODEL_AVAILABLE = False
+
 
 def render_insights():
     """Render the Insights/Chat page."""
@@ -35,9 +51,9 @@ def render_insights():
     # Show knowledge base status
     render_knowledge_status()
     
-    # Initialize chat history
+    # Initialize chat history - load from persistence if available
     if "chat_messages" not in st.session_state:
-        st.session_state.chat_messages = []
+        st.session_state.chat_messages = _load_chat_history()
     
     # Quick question buttons
     st.markdown("#### Quick Questions")
@@ -77,7 +93,19 @@ def render_insights():
     st.markdown("---")
     
     # Chat interface
-    st.markdown("#### Chat")
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.markdown("#### Chat")
+    with col2:
+        if st.button("🗑️ Clear", help="Clear chat history"):
+            st.session_state.chat_messages = []
+            if PERSISTENCE_AVAILABLE:
+                try:
+                    persistence = get_persistence_service()
+                    persistence.save_chat_history('global', [])
+                except:
+                    pass
+            st.rerun()
     
     # Display chat history
     chat_container = st.container()
@@ -124,19 +152,13 @@ def render_knowledge_status():
 def add_question(question: str):
     """Add a question to chat and get response."""
     # Add user message
-    st.session_state.chat_messages.append({
-        "role": "user",
-        "content": question
-    })
+    _append_message("user", question)
     
     # Get comprehensive response
     response = get_comprehensive_answer(question)
     
     # Add assistant message
-    st.session_state.chat_messages.append({
-        "role": "assistant",
-        "content": response
-    })
+    _append_message("assistant", response)
     
     st.rerun()
 
@@ -149,6 +171,7 @@ def get_comprehensive_answer(question: str) -> str:
     3. Session state results (current session)
     4. Past learnings (from vector store)
     5. Performance modeling insights (creative features → lift)
+    6. ML model insights (trained feature importance)
     """
     
     # Classify the question to understand intent
@@ -159,7 +182,8 @@ def get_comprehensive_answer(question: str) -> str:
     is_driver_question = any(word in question_lower for word in [
         'driver', 'impact', 'affect', 'influence', 'human', 'logo', 'product',
         'cta', 'call to action', 'what makes', 'best performing', 'worst',
-        'avoid', 'element', 'feature', 'presence'
+        'avoid', 'element', 'feature', 'presence', 'predictor', 'predict',
+        'important', 'matters', 'correlation'
     ])
     
     # If it's a driver question and modeling is available, use that
@@ -175,32 +199,45 @@ def get_comprehensive_answer(question: str) -> str:
     
     # Gather context from all sources
     context_parts = []
+    sources_used = []
     
     # 1. Get rules context (always relevant)
     rules_context = get_rules_context(question)
     if rules_context:
         context_parts.append(f"**CT Rules & Guidelines:**\n{rules_context}")
+        sources_used.append("CT Rules")
     
     # 2. Get vector store results context
     vector_context = get_vector_store_context(question)
     if vector_context:
         context_parts.append(f"**Historical Test Results (from knowledge base):**\n{vector_context}")
+        sources_used.append("Historical Test Results")
     
     # 3. Get current session results context
     session_context = get_session_results_context(question)
     if session_context:
         context_parts.append(f"**Current Session Results:**\n{session_context}")
+        sources_used.append("Current Session Results")
     
     # 4. Get past learnings context
     learnings_context = get_learnings_context(question)
     if learnings_context:
         context_parts.append(f"**Past Learnings:**\n{learnings_context}")
+        sources_used.append("Past Learnings")
     
     # 5. Get performance modeling context if available
     if MODELING_AVAILABLE:
         modeling_context = get_modeling_context(question)
         if modeling_context:
             context_parts.append(f"**Performance Driver Analysis:**\n{modeling_context}")
+            sources_used.append("Performance Driver Analysis")
+    
+    # 6. Get ML model insights (NEW)
+    if PREDICTION_MODEL_AVAILABLE:
+        ml_context = get_ml_model_context(question)
+        if ml_context:
+            context_parts.append(f"**ML Model Insights (Trained on Historical Data):**\n{ml_context}")
+            sources_used.append("Trained ML Model")
     
     # If no context available, provide helpful guidance
     if not context_parts:
@@ -208,26 +245,37 @@ def get_comprehensive_answer(question: str) -> str:
     
     # Combine all context
     full_context = "\n\n".join(context_parts)
+    sources_note = ", ".join(sources_used)
     
-    # Generate comprehensive answer
-    prompt = f"""Based on the following information about our creative testing program:
+    # Generate comprehensive answer with strict grounding
+    prompt = f"""Based ONLY on the following information about our creative testing program:
 
 {full_context}
 
 Please answer this question: {question}
 
-Provide a clear, specific answer. If citing data, be precise about numbers and sources. 
-If the information isn't available, say so clearly."""
+CRITICAL INSTRUCTIONS:
+1. ONLY use information provided above. Do NOT make up data or statistics.
+2. If the data doesn't contain enough information to fully answer the question, say "Based on available data..." and only share what you know.
+3. When citing numbers, specify which source they came from (e.g., "According to ML model analysis..." or "From historical test results...").
+4. If you need to provide general context beyond the data, explicitly state: "Note: The following is general industry knowledge, not from your specific data: ..."
+5. Do NOT invent creative names, lift percentages, or pass rates that aren't in the provided context.
 
-    system_prompt = """You are an expert creative testing analyst helping media agency teams understand their test results and optimize creative performance. 
+Sources available for this answer: {sources_note}"""
 
-You have access to:
-- CT Rules and guidelines
-- Historical test results
-- Past learnings from previous campaigns
-- Performance driver analysis (which creative elements drive lift)
+    system_prompt = """You are an expert creative testing analyst. You help media agency teams understand their test results and optimize creative performance.
 
-Be helpful, specific, and data-driven in your responses. When discussing results, cite specific creatives, campaigns, and metrics when available."""
+IMPORTANT RULES:
+1. You must ONLY answer based on the data provided in the context. Never invent statistics or results.
+2. If asked about something not in the context, clearly state that you don't have that information.
+3. When the context includes "ML Model Insights", treat those as the most reliable source for feature importance and predictors.
+4. Distinguish between:
+   - FACTS from data (cite the source)
+   - GENERAL KNOWLEDGE (explicitly label as "industry research suggests..." or "general best practice...")
+5. Be specific: use actual creative names, actual percentages, actual metrics from the context.
+6. If you're uncertain, say so. It's better to say "I don't have data on that" than to guess.
+
+Your goal is to be helpful AND accurate. Accuracy comes first."""
 
     return get_completion(prompt=prompt, system=system_prompt)
 
@@ -292,18 +340,42 @@ def get_session_results_context(question: str) -> str:
         campaign_name = campaign.get("name", "Unknown Campaign")
         brand_name = campaign.get("brand", {}).get("name", "Unknown Brand")
         
-        summary = [
-            f"Campaign: {campaign_name} ({brand_name})",
-            f"Pass Rate: {results.pass_rate * 100:.0f}% ({results.creatives_passed}/{results.total_creatives_tested})",
-            "Results:"
-        ]
-        
-        for r in results.results:
-            status = "✓ PASS" if r.passed else "✗ FAIL"
-            summary.append(
-                f"  - {r.creative_name} ({r.asset_type.value}): "
-                f"{r.primary_kpi_lift:.1f}% lift, {status}"
-            )
+        # Handle both dict and object formats
+        if isinstance(results, dict):
+            results_list = results.get('results', [])
+            total_tested = len(results_list)
+            passed_count = sum(1 for r in results_list if r.get('passed', False))
+            pass_rate = (passed_count / total_tested * 100) if total_tested > 0 else 0
+            
+            # Try to get campaign name from results if not in plan
+            if campaign_name == "Unknown Campaign":
+                campaign_name = results.get('campaign_name', results.get('campaign', {}).get('name', 'Unknown Campaign'))
+            
+            summary = [
+                f"Campaign: {campaign_name} ({brand_name})",
+                f"Pass Rate: {pass_rate:.0f}% ({passed_count}/{total_tested})",
+                "Results:"
+            ]
+            
+            for r in results_list:
+                status = "✓ PASS" if r.get('passed', False) else "✗ FAIL"
+                creative_name = r.get('creative_name', 'Unknown')
+                lift = r.get('awareness_lift_pct', r.get('primary_kpi_lift', 0))
+                summary.append(f"  - {creative_name}: {lift:.1f}% lift, {status}")
+        else:
+            # Original object format
+            summary = [
+                f"Campaign: {campaign_name} ({brand_name})",
+                f"Pass Rate: {results.pass_rate * 100:.0f}% ({results.creatives_passed}/{results.total_creatives_tested})",
+                "Results:"
+            ]
+            
+            for r in results.results:
+                status = "✓ PASS" if r.passed else "✗ FAIL"
+                summary.append(
+                    f"  - {r.creative_name} ({r.asset_type.value}): "
+                    f"{r.primary_kpi_lift:.1f}% lift, {status}"
+                )
         
         context_parts.append("\n".join(summary))
     
@@ -369,6 +441,61 @@ def get_modeling_context(question: str) -> str:
         return ""
 
 
+def get_ml_model_context(question: str) -> str:
+    """Get insights from the trained ML prediction model."""
+    if not PREDICTION_MODEL_AVAILABLE:
+        return ""
+    
+    try:
+        model = get_prediction_model()
+        
+        if not model.is_trained:
+            return ""
+        
+        context_parts = []
+        stats = model.training_stats
+        
+        # Model overview
+        context_parts.append(f"Model trained on {stats.get('n_samples', 0)} historical creatives")
+        context_parts.append(f"Historical pass rate: {stats.get('pass_rate', 0):.1f}%")
+        context_parts.append(f"Model accuracy (LOOCV): {stats.get('loocv_accuracy', 0):.1f}%")
+        context_parts.append(f"Precision: {stats.get('loocv_precision', 0):.1f}%, Recall: {stats.get('loocv_recall', 0):.1f}%")
+        context_parts.append("")
+        
+        # Top predictors of pass/fail
+        if model.learned_feature_importance:
+            context_parts.append("TOP PREDICTORS OF CREATIVE SUCCESS (from trained model):")
+            for i, (feature, importance) in enumerate(list(model.learned_feature_importance.items())[:10], 1):
+                feature_display = feature.replace('_', ' ').replace('score', '').title().strip()
+                context_parts.append(f"  {i}. {feature_display}: {importance*100:.1f}% importance")
+        
+        # Diagnostic model insights
+        if model.diagnostic_models_trained and model.diagnostic_training_stats:
+            context_parts.append("")
+            context_parts.append("DIAGNOSTIC PREDICTION ACCURACY (video features → diagnostic scores):")
+            for diag_name, diag_stats in model.diagnostic_training_stats.items():
+                diag_display = diag_name.replace('_', ' ').title()
+                r2 = diag_stats.get('cv_r2', 0)
+                rmse = diag_stats.get('rmse', 0)
+                top_preds = diag_stats.get('top_predictors', [])[:3]
+                pred_names = [p[0].replace('_', ' ') for p in top_preds]
+                context_parts.append(f"  • {diag_display}: R²={r2:.2f}, RMSE=±{rmse:.1f}")
+                if pred_names:
+                    context_parts.append(f"    Driven by: {', '.join(pred_names)}")
+        
+        # Video features that matter
+        context_parts.append("")
+        context_parts.append("VIDEO FEATURES ANALYZED:")
+        context_parts.append("  • Human presence (in opening, frame ratio, looking at camera)")
+        context_parts.append("  • Brand elements (logo timing, logo frequency, product visibility)")
+        context_parts.append("  • Engagement elements (CTA presence, CTA timing)")
+        context_parts.append("  • Content style (emotional content, positive emotions, scene diversity)")
+        
+        return "\n".join(context_parts)
+    except Exception as e:
+        return ""
+
+
 def get_no_context_response(question: str) -> str:
     """Provide helpful response when no context is available."""
     return """I don't have enough information to answer that question yet.
@@ -390,3 +517,35 @@ def get_no_context_response(question: str) -> str:
 4. **For historical insights:** Have a superuser upload past learnings (PPTs, reports) in the **Admin** tab.
 
 What would you like to know about the CT rules?"""
+
+
+def _load_chat_history() -> list:
+    """Load chat history from persistence."""
+    if PERSISTENCE_AVAILABLE:
+        try:
+            persistence = get_persistence_service()
+            messages = persistence.load_chat_history('global')
+            return messages
+        except Exception:
+            pass
+    return []
+
+
+def _save_chat_history():
+    """Save chat history to persistence."""
+    if PERSISTENCE_AVAILABLE:
+        try:
+            persistence = get_persistence_service()
+            persistence.save_chat_history('global', st.session_state.chat_messages)
+        except Exception:
+            pass
+
+
+def _append_message(role: str, content: str):
+    """Append a message to chat history and save."""
+    st.session_state.chat_messages.append({
+        'role': role,
+        'content': content,
+    })
+    _save_chat_history()
+

@@ -1,8 +1,10 @@
 """
 CT Orchestrator - Streamlit Frontend
-Main application entry point with navigation and shared state.
 
-This version is designed for Hugging Face Spaces demo with pre-scored videos.
+Main application entry point with navigation and shared state.
+Supports two modes:
+  - Demo mode (DEMO_MODE=true): Pre-scored videos, demo chat, limited queries
+  - Local mode (DEMO_MODE=false): Full agent system, file processing, unlimited
 """
 
 import streamlit as st
@@ -10,9 +12,13 @@ from pathlib import Path
 import sys
 import json
 import os
+from dotenv import load_dotenv
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Load .env file (from project root)
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 # Page configuration - MUST be first Streamlit command
 st.set_page_config(
@@ -34,306 +40,304 @@ MAX_DEMO_QUERIES = 5
 # Custom CSS
 st.markdown("""
 <style>
-    /* Hide default Streamlit multipage navigation */
-    [data-testid="stSidebarNav"] {
-        display: none;
-    }
-    
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1E3A5F;
-        margin-bottom: 0;
-    }
-    .sub-header {
-        font-size: 1.1rem;
-        color: #4A90A4;
-        margin-top: 0;
-    }
-    .status-pass {
-        color: #10B981;
-        font-weight: 600;
-    }
-    .status-fail {
-        color: #EF4444;
-        font-weight: 600;
-    }
+    [data-testid="stSidebarNav"] { display: none; }
+    .main-header { font-size: 2.5rem; font-weight: 700; color: #1E3A5F; margin-bottom: 0; }
+    .sub-header { font-size: 1.1rem; color: #4A90A4; margin-top: 0; }
+    .status-pass { color: #10B981; font-weight: 600; }
+    .status-fail { color: #EF4444; font-weight: 600; }
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
+    .stTabs [data-baseweb="tab"] { padding: 10px 20px; }
 </style>
 """, unsafe_allow_html=True)
 
+
+# =============================================================================
+# Session State
+# =============================================================================
 
 def init_session_state():
     """Initialize session state variables."""
     if "campaigns" not in st.session_state:
         st.session_state.campaigns = []
-    
     if "current_campaign" not in st.session_state:
         st.session_state.current_campaign = None
-    
     if "test_plans" not in st.session_state:
         st.session_state.test_plans = {}
-    
     if "test_results" not in st.session_state:
         st.session_state.test_results = {}
-    
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
-    
     if "rules_pdf_path" not in st.session_state:
         st.session_state.rules_pdf_path = None
-    
     if "nav_page" not in st.session_state:
-        st.session_state.nav_page = "🏠 Welcome"
-    
+        st.session_state.nav_page = "🏠 Home"
     if "demo_videos_loaded" not in st.session_state:
         st.session_state.demo_videos_loaded = False
-    
     if "selected_video" not in st.session_state:
         st.session_state.selected_video = None
-    
     if "demo_query_count" not in st.session_state:
         st.session_state.demo_query_count = 0
+    # Hub chat (used in demo mode)
+    if "hub_chat_messages" not in st.session_state:
+        st.session_state.hub_chat_messages = []
+    if "hub_uploaded_videos" not in st.session_state:
+        st.session_state.hub_uploaded_videos = []
+    if "hub_uploaded_media_plan" not in st.session_state:
+        st.session_state.hub_uploaded_media_plan = None
 
+    # Non-demo: try to initialize agent system + persistence
+    if not DEMO_MODE:
+        _init_local_state()
+
+
+def _init_local_state():
+    """Initialize local-mode state: agent system, persistence."""
+    if "persistence_loaded" not in st.session_state:
+        st.session_state.persistence_loaded = False
+
+    if "agent_hub_state" not in st.session_state:
+        try:
+            from agents.state import create_initial_state
+            st.session_state.agent_hub_state = create_initial_state()
+        except ImportError:
+            st.session_state.agent_hub_state = None
+
+    if "agent_hub_system" not in st.session_state:
+        try:
+            from agents.graph import get_multi_agent_system
+            st.session_state.agent_hub_system = get_multi_agent_system()
+        except ImportError:
+            st.session_state.agent_hub_system = None
+
+    if not st.session_state.persistence_loaded:
+        _load_from_persistence()
+        st.session_state.persistence_loaded = True
+
+
+def _load_from_persistence():
+    """Load saved data from persistence on app startup (local mode only)."""
+    try:
+        from services.persistence import get_persistence_service
+        persistence = get_persistence_service()
+
+        plans = persistence.list_plans(is_approved=True)
+        for plan_info in plans:
+            plan_data = persistence.load_plan(plan_info['plan_id'], is_approved=True)
+            if plan_data:
+                st.session_state.test_plans[plan_info['plan_id']] = plan_data
+                campaign = plan_data.get('campaign', {})
+                if campaign:
+                    existing_ids = [c.get('id') for c in st.session_state.campaigns]
+                    if campaign.get('id') not in existing_ids:
+                        st.session_state.campaigns.append(campaign)
+
+        results_list = persistence.list_results()
+        for result_info in results_list:
+            result_data = persistence.load_results(result_info['results_id'])
+            if result_data:
+                campaign_id = result_data.get('campaign_id', result_data.get('plan_id', ''))
+                if campaign_id:
+                    st.session_state.test_results[campaign_id] = result_data
+
+        chat_messages = persistence.load_chat_history('global')
+        if chat_messages:
+            st.session_state.chat_history = chat_messages
+
+        try:
+            from services.prediction_model import CreativePredictionModel
+            CreativePredictionModel.load_benchmarks_from_historical_data()
+        except Exception:
+            pass
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"Error loading from persistence: {e}")
+
+
+# =============================================================================
+# Demo Data
+# =============================================================================
 
 def load_demo_data():
     """Load pre-scored demo videos and results."""
     if st.session_state.demo_videos_loaded:
         return
-    
     demo_data_path = Path(__file__).parent.parent / "demo_data"
-    
     if demo_data_path.exists():
-        # Load pre-scored video features
         features_file = demo_data_path / "prescored_features.json"
         if features_file.exists():
             with open(features_file) as f:
                 st.session_state.demo_features = json.load(f)
-        
-        # Load sample results
         results_file = demo_data_path / "sample_results.json"
         if results_file.exists():
             with open(results_file) as f:
                 st.session_state.demo_results = json.load(f)
-        
         st.session_state.demo_videos_loaded = True
 
 
 def get_sample_videos():
-    """Return sample video data."""
+    """Return sample video data for demo mode."""
     return [
         {
-            "id": "summer_hero_30s",
-            "name": "Summer_Hero_30s",
-            "duration": "30 sec",
-            "prediction": "PASS",
-            "confidence": "87%",
+            "id": "summer_hero_30s", "name": "Summer_Hero_30s", "duration": "30 sec",
+            "prediction": "PASS", "confidence": "87%",
             "key_features": "Human presence, Product demo, Clear CTA",
-            "diagnostics": {
-                "attention_score": 78,
-                "brand_recall_score": 82,
-                "message_clarity_score": 75,
-                "emotional_resonance_score": 71,
-                "uniqueness_score": 68
-            },
-            "features": {
-                "human_frame_ratio": 0.73,
-                "logo_in_first_3_sec": True,
-                "has_cta": True,
-                "has_emotional_content": True,
-                "product_visible_ratio": 0.45
-            },
+            "diagnostics": {"attention_score": 78, "brand_recall_score": 82, "message_clarity_score": 75, "emotional_resonance_score": 71, "uniqueness_score": 68},
+            "features": {"human_frame_ratio": 0.73, "logo_in_first_3_sec": True, "has_cta": True, "has_emotional_content": True, "product_visible_ratio": 0.45},
             "recommendation": "RUN - Strong creative with excellent human presence and early brand integration."
         },
         {
-            "id": "brand_story_15s",
-            "name": "Brand_Story_15s",
-            "duration": "15 sec",
-            "prediction": "PASS",
-            "confidence": "72%",
+            "id": "brand_story_15s", "name": "Brand_Story_15s", "duration": "15 sec",
+            "prediction": "PASS", "confidence": "72%",
             "key_features": "Emotional content, Logo in first 3s",
-            "diagnostics": {
-                "attention_score": 70,
-                "brand_recall_score": 75,
-                "message_clarity_score": 68,
-                "emotional_resonance_score": 74,
-                "uniqueness_score": 62
-            },
-            "features": {
-                "human_frame_ratio": 0.55,
-                "logo_in_first_3_sec": True,
-                "has_cta": True,
-                "has_emotional_content": True,
-                "product_visible_ratio": 0.30
-            },
+            "diagnostics": {"attention_score": 70, "brand_recall_score": 75, "message_clarity_score": 68, "emotional_resonance_score": 74, "uniqueness_score": 62},
+            "features": {"human_frame_ratio": 0.55, "logo_in_first_3_sec": True, "has_cta": True, "has_emotional_content": True, "product_visible_ratio": 0.30},
             "recommendation": "RUN - Emotionally engaging short-form content. Consider A/B testing with longer format."
         },
         {
-            "id": "product_focus_30s",
-            "name": "Product_Focus_30s",
-            "duration": "30 sec",
-            "prediction": "FAIL",
-            "confidence": "65%",
+            "id": "product_focus_30s", "name": "Product_Focus_30s", "duration": "30 sec",
+            "prediction": "FAIL", "confidence": "65%",
             "key_features": "Low human presence, No clear CTA",
-            "diagnostics": {
-                "attention_score": 45,
-                "brand_recall_score": 38,
-                "message_clarity_score": 62,
-                "emotional_resonance_score": 41,
-                "uniqueness_score": 55
-            },
-            "features": {
-                "human_frame_ratio": 0.12,
-                "logo_in_first_3_sec": False,
-                "has_cta": False,
-                "has_emotional_content": False,
-                "product_visible_ratio": 0.85
-            },
+            "diagnostics": {"attention_score": 45, "brand_recall_score": 38, "message_clarity_score": 62, "emotional_resonance_score": 41, "uniqueness_score": 55},
+            "features": {"human_frame_ratio": 0.12, "logo_in_first_3_sec": False, "has_cta": False, "has_emotional_content": False, "product_visible_ratio": 0.85},
             "recommendation": "DO NOT RUN - Critical issues: low human presence, late logo, no CTA. Major revisions needed.",
-            "improvements": [
-                "Add human talent interacting with product",
-                "Move logo to opening 3 seconds",
-                "Add clear CTA in final 5 seconds",
-                "Include emotional storytelling elements"
-            ]
+            "improvements": ["Add human talent interacting with product", "Move logo to opening 3 seconds", "Add clear CTA in final 5 seconds", "Include emotional storytelling elements"]
         },
         {
-            "id": "lifestyle_60s",
-            "name": "Lifestyle_60s",
-            "duration": "60 sec",
-            "prediction": "PASS",
-            "confidence": "79%",
+            "id": "lifestyle_60s", "name": "Lifestyle_60s", "duration": "60 sec",
+            "prediction": "PASS", "confidence": "79%",
             "key_features": "High engagement, Strong brand recall",
-            "diagnostics": {
-                "attention_score": 76,
-                "brand_recall_score": 71,
-                "message_clarity_score": 73,
-                "emotional_resonance_score": 80,
-                "uniqueness_score": 72
-            },
-            "features": {
-                "human_frame_ratio": 0.68,
-                "logo_in_first_3_sec": False,
-                "has_cta": True,
-                "has_emotional_content": True,
-                "product_visible_ratio": 0.40
-            },
+            "diagnostics": {"attention_score": 76, "brand_recall_score": 71, "message_clarity_score": 73, "emotional_resonance_score": 80, "uniqueness_score": 72},
+            "features": {"human_frame_ratio": 0.68, "logo_in_first_3_sec": False, "has_cta": True, "has_emotional_content": True, "product_visible_ratio": 0.40},
             "recommendation": "RUN - Strong lifestyle creative with excellent emotional resonance. Consider earlier logo placement."
         }
     ]
 
 
+# =============================================================================
+# Main + Navigation
+# =============================================================================
+
 def main():
     """Main application."""
     init_session_state()
-    
+
     if DEMO_MODE:
         load_demo_data()
-    
+
     # Sidebar Navigation
     with st.sidebar:
         st.markdown("## 🎬 CT Orchestrator")
-        
+
         if DEMO_MODE:
-            st.warning("📺 **Demo Mode** - Using pre-scored videos")
-        
+            st.warning("📺 **Demo Mode** — Pre-scored videos")
+
         st.markdown("---")
-        
-        # Navigation
-        nav_options = [
-            "🏠 Welcome",
-            "🤖 Multi-Agent Hub", 
-            "📊 Results & Predictions",
-        ]
-        
-        # Only show these in non-demo mode (they have import issues)
-        if not DEMO_MODE:
-            nav_options.extend([
+
+        # Build nav options based on mode
+        if DEMO_MODE:
+            nav_options = [
+                "🏠 Home",
+                "🧠 Agent Hub",
+                "📊 Results & Predictions",
+            ]
+        else:
+            nav_options = [
+                "🏠 Home",
+                "🧠 Agent Hub",
+                "🤖 Planning Agent",
                 "📋 CT Planner",
-                "💬 Insights Chat",
-                "⚙️ Admin"
-            ])
-        
+                "🔮 Creative Scorer",
+                "📊 Results",
+                "💬 Insights",
+                "⚙️ Admin",
+            ]
+
         for option in nav_options:
             if st.button(
-                option, 
+                option,
                 key=f"nav_{option}",
                 use_container_width=True,
                 type="primary" if st.session_state.nav_page == option else "secondary"
             ):
                 st.session_state.nav_page = option
                 st.rerun()
-        
+
         st.markdown("---")
-        
+
         # Quick Stats
-        st.markdown("### 📊 Session Stats")
+        st.markdown("### 📊 Stats")
         col1, col2 = st.columns(2)
         with col1:
-            st.metric("Videos", 4)
+            if DEMO_MODE:
+                st.metric("Videos", 4)
+            else:
+                st.metric("Campaigns", len(st.session_state.campaigns))
         with col2:
             if DEMO_MODE:
                 remaining = MAX_DEMO_QUERIES - st.session_state.demo_query_count
                 st.metric("Queries Left", f"{remaining}/{MAX_DEMO_QUERIES}")
-        
+            else:
+                st.metric("Plans", len(st.session_state.test_plans))
+
         st.markdown("---")
-        
-        # GitHub Link
         st.markdown("""
         **🔗 Resources**
         - [GitHub Repo](https://github.com/akshargupta84/ct-orchestrator)
         - [Documentation](https://github.com/akshargupta84/ct-orchestrator#readme)
         """)
-        
         st.caption("CT Orchestrator v1.0 | Apache 2.0")
-    
-    # Main Content
-    if st.session_state.nav_page == "🏠 Welcome":
-        show_welcome()
-    elif st.session_state.nav_page == "🤖 Multi-Agent Hub":
-        show_multi_agent_hub()
-    elif st.session_state.nav_page == "📊 Results & Predictions":
-        show_results_demo()
-    elif st.session_state.nav_page == "📋 CT Planner":
+
+    # Route to pages
+    page = st.session_state.nav_page
+
+    if page == "🏠 Home":
+        show_home()
+    elif page == "🧠 Agent Hub":
+        show_agent_hub()
+    elif page == "🤖 Planning Agent":
+        show_planning_agent()
+    elif page == "📋 CT Planner":
         show_planner()
-    elif st.session_state.nav_page == "💬 Insights Chat":
+    elif page == "🔮 Creative Scorer":
+        show_creative_scorer()
+    elif page in ("📊 Results", "📊 Results & Predictions"):
+        show_results()
+    elif page == "💬 Insights":
         show_insights()
-    elif st.session_state.nav_page == "⚙️ Admin":
+    elif page == "⚙️ Admin":
         show_admin()
 
 
-def show_welcome():
-    """Welcome/intro page with project overview."""
-    
-    # Hero Section
+# =============================================================================
+# Home Page
+# =============================================================================
+
+def show_home():
+    """Home page with overview."""
     st.title("🎬 Creative Testing Orchestrator")
     st.markdown("*AI-powered multi-agent system for automating creative testing workflows in media agencies*")
-    
-    # Demo Mode Banner
+
     if DEMO_MODE:
         st.info(
             "**🎯 You're viewing the interactive demo** — "
-            "This demo uses pre-scored sample videos so you can explore all features instantly. "
-            "For live video scoring with your own creatives, "
-            "[clone the GitHub repo](https://github.com/akshargupta84/ct-orchestrator) and run locally with Ollama."
+            "Pre-scored sample videos let you explore all features instantly. "
+            "For live scoring with your own creatives, "
+            "[clone the repo](https://github.com/akshargupta84/ct-orchestrator) and run locally with Ollama."
         )
-    
+
     st.markdown("---")
-    
+
     # What is this?
     st.markdown("## 🎯 What is CT Orchestrator?")
-    
     col1, col2 = st.columns([2, 1])
-    
     with col1:
         st.markdown("""
         **CT Orchestrator** helps media agencies predict which video ads will perform well 
         in brand lift studies — *before* spending $10K-$25K on actual testing.
         
-        **The Problem:**
-        - Brand lift studies cost $10K-$25K each
-        - ~65% of creatives fail to show significant lift
-        - Results take 2-4 weeks
-        - No systematic learning from past tests
+        **The Problem:** Brand lift studies cost $10K-$25K each, ~65% of creatives fail, 
+        results take 2-4 weeks, and there's no systematic learning from past tests.
         
         **Our Solution:**
         - 🎥 **Video Analysis**: Extract creative features using local AI vision models
@@ -341,133 +345,114 @@ def show_welcome():
         - 📊 **Predictive Modeling**: ML models trained on historical results
         - 💬 **Insights Chat**: Ask questions about your data and past learnings
         """)
-    
     with col2:
         st.metric("Potential Annual Savings", "~$150K")
         st.metric("Reduce Failure Rate", "65% → 30%")
-    
+
     st.markdown("---")
-    
-    # How to Use This Demo - Using native Streamlit components
-    st.markdown("## 🚀 How to Explore This Demo")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        with st.container(border=True):
-            st.markdown("### 1️⃣ Multi-Agent Hub")
-            st.markdown("""
-            See how our AI agents work together to orchestrate the creative testing workflow.
-            - Planning Agent
-            - Analysis Agent  
-            - Video Analyzer
-            - Knowledge Agent
-            """)
-            if st.button("Go to Multi-Agent Hub →", key="goto_hub"):
-                st.session_state.nav_page = "🤖 Multi-Agent Hub"
+
+    # Quick navigation cards
+    st.markdown("## 🚀 Get Started")
+
+    if not DEMO_MODE:
+        # Non-demo: show all features
+        col_a, col_b = st.columns(2)
+        with col_a:
+            if st.button("🧠 Try Agent Hub", type="primary", use_container_width=True):
+                st.session_state.nav_page = "🧠 Agent Hub"
                 st.rerun()
-    
-    with col2:
-        with st.container(border=True):
-            st.markdown("### 2️⃣ Results & Predictions")
-            st.markdown("""
-            Explore pre-scored sample videos and see predictions in action.
-            - Pass/Fail predictions
-            - Diagnostic scores
-            - Video feature analysis
-            - Recommendations
-            """)
-            if st.button("Go to Results →", key="goto_results"):
-                st.session_state.nav_page = "📊 Results & Predictions"
+        with col_b:
+            if st.button("🤖 Planning Agent (Single Agent)", use_container_width=True):
+                st.session_state.nav_page = "🤖 Planning Agent"
                 st.rerun()
-    
-    with col3:
-        with st.container(border=True):
-            st.markdown("### 3️⃣ Chat with Agents")
-            st.markdown("""
-            Ask questions about creative testing in the Multi-Agent Hub.
-            - "What drives brand recall?"
-            - "Analyze this video"
-            - "What are the budget rules?"
-            
-            *5 free queries in demo*
-            """)
-            if st.button("Try Chat →", key="goto_chat"):
-                st.session_state.nav_page = "🤖 Multi-Agent Hub"
+
+        st.markdown("---")
+        col1, col2, col3, col4, col5 = st.columns(5)
+        with col1:
+            st.markdown("### 📋 Planner")
+            st.markdown("Form-based testing plans with rule validation.")
+            if st.button("Create Plan", key="home_plan", use_container_width=True):
+                st.session_state.nav_page = "📋 CT Planner"
                 st.rerun()
-    
-    st.markdown("---")
-    
-    # Sample Videos - Using native Streamlit with clickable buttons
-    st.markdown("## 📹 Pre-Scored Sample Videos")
-    st.markdown("""
-    This demo includes **4 sample video creatives** that have been pre-analyzed. 
-    Click on any video to explore its features, predictions, and recommendations.
-    """)
-    
-    sample_videos = get_sample_videos()
-    
-    cols = st.columns(4)
-    for i, video in enumerate(sample_videos):
-        with cols[i]:
+        with col2:
+            st.markdown("### 🔮 Scorer")
+            st.markdown("Predict results before testing with local AI.")
+            if st.button("Score Creative", key="home_scorer", use_container_width=True):
+                st.session_state.nav_page = "🔮 Creative Scorer"
+                st.rerun()
+        with col3:
+            st.markdown("### 📊 Results")
+            st.markdown("Analyze performance and get recommendations.")
+            if st.button("View Results", key="home_results", use_container_width=True):
+                st.session_state.nav_page = "📊 Results"
+                st.rerun()
+        with col4:
+            st.markdown("### 💬 Insights")
+            st.markdown("Ask questions about data and learnings.")
+            if st.button("Ask Question", key="home_insights", use_container_width=True):
+                st.session_state.nav_page = "💬 Insights"
+                st.rerun()
+        with col5:
+            st.markdown("### ⚙️ Admin")
+            st.markdown("Configure rules, API keys, and settings.")
+            if st.button("Settings", key="home_admin", use_container_width=True):
+                st.session_state.nav_page = "⚙️ Admin"
+                st.rerun()
+
+    else:
+        # Demo: streamlined navigation
+        col1, col2, col3 = st.columns(3)
+        with col1:
             with st.container(border=True):
-                st.markdown(f"**🎬 {video['name']}**")
-                st.caption(video['duration'])
-                
-                if video["prediction"] == "PASS":
-                    st.success(f"{video['prediction']} ({video['confidence']})")
-                else:
-                    st.error(f"{video['prediction']} ({video['confidence']})")
-                
-                st.caption(video['key_features'])
-                
-                if st.button("View Details", key=f"view_{video['id']}", use_container_width=True):
-                    st.session_state.selected_video = video['id']
+                st.markdown("### 1️⃣ Agent Hub")
+                st.markdown("Chat with AI agents, upload videos & media plans, generate test plans.")
+                if st.button("Go to Agent Hub →", key="goto_hub"):
+                    st.session_state.nav_page = "🧠 Agent Hub"
+                    st.rerun()
+        with col2:
+            with st.container(border=True):
+                st.markdown("### 2️⃣ Results & Predictions")
+                st.markdown("Explore video predictions, diagnostic scores, and recommendations.")
+                if st.button("Go to Results →", key="goto_results"):
                     st.session_state.nav_page = "📊 Results & Predictions"
                     st.rerun()
-    
-    st.markdown("---")
-    
-    # Run Locally Section
-    st.markdown("## 💻 Run Locally with Your Own Videos")
-    
-    st.markdown("""
-    Want to analyze your own video creatives? Clone the repo and run locally with Ollama for live scoring.
-    """)
-    
-    with st.expander("📋 Quick Start Guide", expanded=False):
-        st.code("""
-# Clone the repository
-git clone https://github.com/akshargupta84/ct-orchestrator.git
-cd ct-orchestrator
+        with col3:
+            with st.container(border=True):
+                st.markdown("### 3️⃣ Chat with Agents")
+                st.markdown("Ask about brand recall drivers, budget rules, and creative best practices.")
+                st.caption("*5 free queries in demo*")
+                if st.button("Try Chat →", key="goto_chat"):
+                    st.session_state.nav_page = "🧠 Agent Hub"
+                    st.rerun()
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate
+    # Sample videos (demo only)
+    if DEMO_MODE:
+        st.markdown("---")
+        st.markdown("## 📹 Pre-Scored Sample Videos")
+        sample_videos = get_sample_videos()
+        cols = st.columns(4)
+        for i, video in enumerate(sample_videos):
+            with cols[i]:
+                with st.container(border=True):
+                    st.markdown(f"**🎬 {video['name']}**")
+                    st.caption(video['duration'])
+                    if video["prediction"] == "PASS":
+                        st.success(f"{video['prediction']} ({video['confidence']})")
+                    else:
+                        st.error(f"{video['prediction']} ({video['confidence']})")
+                    st.caption(video['key_features'])
+                    if st.button("View Details", key=f"view_{video['id']}", use_container_width=True):
+                        st.session_state.selected_video = video['id']
+                        st.session_state.nav_page = "📊 Results & Predictions"
+                        st.rerun()
 
-# Install dependencies
-pip install -r requirements-local.txt
-
-# Set up Ollama (in a separate terminal)
-ollama serve
-ollama pull llava:13b
-
-# Configure environment
-cp .env.example .env
-# Edit .env: set DEMO_MODE=false and add your ANTHROPIC_API_KEY
-
-# Run the app
-streamlit run frontend/app.py
-        """, language="bash")
-    
-    # Architecture Preview
+    # Architecture
     st.markdown("---")
     st.markdown("## 🏗️ Architecture Overview")
-    
     st.code("""
 ┌─────────────────────────────────────────────────────────────────┐
 │                     FRONTEND (Streamlit)                        │
-│   Welcome │ Multi-Agent Hub │ Results │ Insights │ Admin       │
+│   Home │ Agent Hub │ Planner │ Scorer │ Results │ Insights     │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -486,503 +471,570 @@ streamlit run frontend/app.py
 └─────────────────────────────────────────────────────────────────┘
     """, language="text")
 
-
-def show_multi_agent_hub():
-    """Multi-Agent Hub page showing agent orchestration and chat."""
-    
-    st.markdown("# 🤖 Multi-Agent Hub")
-    st.markdown("See how our AI agents work together to orchestrate creative testing workflows.")
-    
-    # Demo mode warning with query limit
+    # Run locally (demo only)
     if DEMO_MODE:
-        remaining = MAX_DEMO_QUERIES - st.session_state.demo_query_count
-        if remaining > 0:
-            st.warning(
-                f"⚠️ **Demo Mode:** {remaining}/{MAX_DEMO_QUERIES} free queries remaining. "
-                "For unlimited access, [run locally](https://github.com/akshargupta84/ct-orchestrator) with your own API key."
+        st.markdown("---")
+        st.markdown("## 💻 Run Locally with Your Own Videos")
+        with st.expander("📋 Quick Start Guide", expanded=False):
+            st.code("""
+# Clone the repository
+git clone https://github.com/akshargupta84/ct-orchestrator.git
+cd ct-orchestrator
+
+# Create virtual environment
+python -m venv venv && source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements-local.txt
+
+# Set up Ollama (in a separate terminal)
+ollama serve && ollama pull llava:13b
+
+# Configure environment
+cp .env.example .env
+# Edit .env: set DEMO_MODE=false and add your ANTHROPIC_API_KEY
+
+# Run the app
+streamlit run frontend/app.py
+            """, language="bash")
+
+
+# =============================================================================
+# Agent Hub (Demo vs Local)
+# =============================================================================
+
+def show_agent_hub():
+    """Agent Hub — routes to real multi-agent system (local) or demo chat."""
+    if not DEMO_MODE:
+        # Check if the actual multi-agent dependencies exist before routing
+        try:
+            import agents.graph  # noqa: F401
+            import agents.state  # noqa: F401
+            from pages.agent_hub import render
+            render()
+            return
+        except ImportError:
+            pass
+        try:
+            import agents.graph  # noqa: F401
+            import agents.state  # noqa: F401
+            from frontend.pages.agent_hub import render
+            render()
+            return
+        except ImportError:
+            pass
+        # Dependencies not built yet — fall through to demo chat (unlimited)
+
+    # Demo mode or fallback
+    _show_demo_agent_hub()
+
+
+def _show_demo_agent_hub():
+    """Demo-mode Agent Hub with persistent chat, file uploads, and demo responses."""
+    st.markdown("# 🧠 Agent Hub")
+    st.markdown("Chat with our AI agents to analyze creatives, generate test plans, and explore CT rules.")
+
+    # Agent architecture (collapsed)
+    with st.expander("🏗️ Agent Architecture", expanded=False):
+        st.code("""
+┌───────────────────────────────────────────────────────────────────────┐
+│                      ORCHESTRATOR (LangGraph)                         │
+│                 Routes requests to appropriate agents                  │
+└───────────────────────────────────────────────────────────────────────┘
+      │                    │                    │                    │
+      ▼                    ▼                    ▼                    ▼
+┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐
+│  PLANNING  │    │  ANALYSIS  │    │   VIDEO    │    │ KNOWLEDGE  │
+│   AGENT    │    │   AGENT    │    │  ANALYZER  │    │   AGENT    │
+│            │    │            │    │            │    │            │
+│ • Rules    │    │ • Pass/Fail│    │ • Frames   │    │ • RAG      │
+│ • Budget   │    │ • Scores   │    │ • LLaVA    │    │ • Q&A      │
+│ • Costs    │    │ • Recs     │    │ • Features │    │ • Learnings│
+└────────────┘    └────────────┘    └────────────┘    └────────────┘
+        """, language="text")
+
+    st.markdown("---")
+
+    # File upload section
+    with st.expander("📁 Upload Files (Videos & Media Plan)", expanded=False):
+        up_col1, up_col2 = st.columns(2)
+        with up_col1:
+            st.markdown("**🎥 Video Creatives**")
+            uploaded_videos = st.file_uploader(
+                "Upload video files", type=["mp4", "mov", "avi"],
+                accept_multiple_files=True, key="hub_video_uploader",
+                help="Upload MP4/MOV/AVI files for analysis."
             )
-        else:
-            st.error(
-                "❌ **Query limit reached.** You've used all 5 demo queries. "
-                "To continue exploring, [clone the repo](https://github.com/akshargupta84/ct-orchestrator), "
-                "add your own Anthropic API key, and run locally for unlimited queries."
+            if uploaded_videos:
+                st.session_state.hub_uploaded_videos = uploaded_videos
+                st.success(f"✅ {len(uploaded_videos)} video(s) ready")
+                for v in uploaded_videos:
+                    st.caption(f"  • {v.name} ({v.size / 1024:.0f} KB)")
+        with up_col2:
+            st.markdown("**📊 Media Plan**")
+            uploaded_plan = st.file_uploader(
+                "Upload media plan", type=["csv", "xlsx", "xls"],
+                key="hub_plan_uploader",
+                help="Upload a media plan to auto-generate a CT plan."
             )
-    
-    st.markdown("---")
-    
-    # Agent Overview
-    st.markdown("## Agent Architecture")
-    
-    st.code("""
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         USER REQUEST                                     │
-│            "Analyze this video" / "What drives brand recall?"           │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      ORCHESTRATOR (LangGraph)                           │
-│                   Routes requests to appropriate agents                  │
-└─────────────────────────────────────────────────────────────────────────┘
-        │                    │                    │                    │
-        ▼                    ▼                    ▼                    ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│   PLANNING   │    │   ANALYSIS   │    │    VIDEO     │    │  KNOWLEDGE   │
-│    AGENT     │    │    AGENT     │    │   ANALYZER   │    │    AGENT     │
-│              │    │              │    │              │    │              │
-│ • Validates  │    │ • Pass/Fail  │    │ • Frame      │    │ • RAG over   │
-│   rules      │    │   decisions  │    │   extraction │    │   rules      │
-│ • Prioritize │    │ • Recomm-    │    │ • Vision AI  │    │ • Past       │
-│   creatives  │    │   endations  │    │   (LLaVA)    │    │   learnings  │
-│ • Cost calc  │    │ • Diagnostics│    │ • Features   │    │ • Q&A        │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
-    """, language="text")
-    
-    st.markdown("---")
-    
-    # Agent Details
-    st.markdown("## Agent Details")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        with st.expander("📋 Planning Agent", expanded=True):
-            st.markdown("""
-            **Purpose:** Validates test plans against business rules
-            
-            **Capabilities:**
-            - Budget tier validation (determines creative limits)
-            - Cost calculation ($5K/video, $3K/display)
-            - Timeline estimation
-            - Rule compliance checking
-            
-            **Input:** Campaign details, creative list, budget
-            
-            **Output:** Validated test plan with costs and timeline
-            """)
-        
-        with st.expander("🎥 Video Analyzer", expanded=True):
-            st.markdown("""
-            **Purpose:** Extracts creative features from video files
-            
-            **Capabilities:**
-            - Frame extraction (8 frames per video)
-            - Vision AI analysis (Ollama/LLaVA locally)
-            - Feature aggregation
-            - Similarity detection (perceptual hashing)
-            
-            **Features Extracted:**
-            - Human presence & screen percentage
-            - Logo visibility & timing
-            - Product demonstration
-            - Call-to-action detection
-            - Emotional content
-            - Scene type diversity
-            
-            **Input:** Video file (MP4)
-            
-            **Output:** 14 numeric features for ML model
-            """)
-    
-    with col2:
-        with st.expander("📊 Analysis Agent", expanded=True):
-            st.markdown("""
-            **Purpose:** Predicts outcomes and generates recommendations
-            
-            **Capabilities:**
-            - Pass/fail prediction (ensemble ML model)
-            - Diagnostic score prediction (attention, brand recall, etc.)
-            - Recommendation generation
-            - Result interpretation
-            
-            **Model Architecture:**
-            - Ensemble: 40% Logistic Regression + 60% Random Forest
-            - 5 Ridge regressors for diagnostic scores
-            - LOOCV validation (n≈50 samples)
-            
-            **Input:** Video features + historical data
-            
-            **Output:** Predictions, confidence, recommendations
-            """)
-        
-        with st.expander("🧠 Knowledge Agent", expanded=True):
-            st.markdown("""
-            **Purpose:** RAG-powered Q&A over rules and learnings
-            
-            **Capabilities:**
-            - Semantic search over CT rules
-            - Historical results lookup
-            - Best practices retrieval
-            - Natural language answers
-            
-            **Data Sources:**
-            - CT Rules PDF (business rules)
-            - Past test results
-            - Performance driver analysis
-            - Session data
-            
-            **Input:** Natural language question
-            
-            **Output:** Contextual answer with citations
-            """)
-    
-    st.markdown("---")
-    
-    # Interactive Chat Section
+            if uploaded_plan:
+                st.session_state.hub_uploaded_media_plan = uploaded_plan
+                st.success(f"✅ {uploaded_plan.name} ready")
+        if st.session_state.hub_uploaded_videos or st.session_state.hub_uploaded_media_plan:
+            st.info("💡 Files attached! Ask the agents to generate a test plan, analyze videos, or match creatives.")
+
+    # Chat interface
     st.markdown("## 💬 Chat with the Agents")
-    
+
+    # Render full chat history
+    chat_container = st.container()
+    with chat_container:
+        for msg in st.session_state.hub_chat_messages:
+            avatar = "🧠" if msg["role"] == "assistant" else None
+            with st.chat_message(msg["role"], avatar=avatar):
+                st.markdown(msg["content"])
+
+    # Query limit — right above chat input
     remaining = MAX_DEMO_QUERIES - st.session_state.demo_query_count
-    
-    if remaining <= 0 and DEMO_MODE:
-        st.error("Query limit reached. Run locally for unlimited access.")
-    else:
-        # Check for API key
-        if not ANTHROPIC_API_KEY and DEMO_MODE:
-            st.info("💡 Chat is available! Ask questions about creative testing.")
-        
-        # Chat input
-        user_query = st.text_input(
-            "Ask a question:",
-            placeholder="e.g., What drives brand recall? / Analyze Summer_Hero_30s / What are the budget rules?",
-            disabled=(remaining <= 0 and DEMO_MODE)
-        )
-        
-        if st.button("Send", disabled=(remaining <= 0 and DEMO_MODE)):
-            if user_query:
-                st.session_state.demo_query_count += 1
-                
-                with st.spinner("Agents processing..."):
-                    import time
-                    time.sleep(1.5)
-                    
-                    # Generate response based on query
-                    response = generate_agent_response(user_query)
-                    
-                st.success("**Agent Response:**")
-                st.markdown(response)
-                
-                # Show remaining queries
-                new_remaining = MAX_DEMO_QUERIES - st.session_state.demo_query_count
-                if new_remaining > 0 and DEMO_MODE:
-                    st.caption(f"Queries remaining: {new_remaining}/{MAX_DEMO_QUERIES}")
-    
-    st.markdown("---")
-    
-    # Example Scenarios
-    st.markdown("## 🎮 Example Scenarios")
-    st.markdown("Click a scenario to see a sample agent response:")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("🎬 Analyze Summer_Hero_30s", use_container_width=True):
-            st.markdown("""
-            **Video Analyzer Response:**
-            ```
-            Video Analysis Complete: Summer_Hero_30s.mp4
-            
-            Features Extracted:
-            ├── Duration: 30 seconds
-            ├── Human Presence: 73% of frames
-            ├── Logo Visibility: First appears at 2.1s ✓
-            ├── Product Demo: Yes (45% of frames)
-            ├── CTA Detected: Yes, at 27s
-            └── Emotional Content: Positive
-            ```
-            
-            **Analysis Agent Response:**
-            ```
-            Prediction: PASS (87% confidence)
-            
-            Diagnostic Scores:
-            ├── Attention: 78/100
-            ├── Brand Recall: 82/100
-            ├── Message Clarity: 75/100
-            └── Emotional Resonance: 71/100
-            
-            Recommendation: RUN - Strong creative with good brand integration
-            ```
-            """)
-    
-    with col2:
-        if st.button("❓ What drives brand recall?", use_container_width=True):
-            st.markdown("""
-            **Knowledge Agent Response:**
-            
-            Based on analysis of 47 historical tests, the key drivers of brand recall are:
-            
-            **Top 3 Factors:**
-            
-            1. **Logo in First 3 Seconds** (r=0.52, p<0.01)
-               - Creatives with early logo placement show 2.1x higher brand recall
-               
-            2. **Human Presence >50%** (r=0.45, p<0.01)
-               - Videos with prominent human presence drive better recall
-               
-            3. **Product Demonstration** (r=0.38, p<0.05)
-               - Showing product in use improves memorability
-            
-            **Recommendation:** Ensure logo appears within the first 3 seconds and 
-            feature humans interacting with the product throughout the creative.
-            
-            *Sources: CT Rules v2.3, Q3 Performance Analysis*
-            """)
+    chat_disabled = (remaining <= 0 and DEMO_MODE)
+
+    if DEMO_MODE:
+        if remaining <= 0:
+            st.error("❌ **Query limit reached.** [Clone the repo](https://github.com/akshargupta84/ct-orchestrator) and run locally for unlimited queries.")
+        elif remaining <= 2:
+            st.warning(f"⚠️ **{remaining}/{MAX_DEMO_QUERIES} queries remaining** · [Run locally](https://github.com/akshargupta84/ct-orchestrator) for unlimited access")
+        else:
+            st.caption(f"💬 {remaining}/{MAX_DEMO_QUERIES} demo queries remaining")
+
+    placeholder = "e.g., What drives brand recall? / Generate a test plan / What are the budget rules?"
+    if chat_disabled:
+        placeholder = "Query limit reached — run locally for unlimited access"
+
+    user_query = st.chat_input(placeholder, disabled=chat_disabled)
+
+    if user_query:
+        st.session_state.hub_chat_messages.append({"role": "user", "content": user_query})
+        if DEMO_MODE:
+            st.session_state.demo_query_count += 1
+        upload_context = _build_upload_context()
+        response = _generate_demo_response(user_query, upload_context)
+        st.session_state.hub_chat_messages.append({"role": "assistant", "content": response})
+        st.rerun()
+
+    # Quick action buttons (only before first message)
+    if not st.session_state.hub_chat_messages:
+        st.markdown("---")
+        st.markdown("### 🎮 Try These")
+        qc1, qc2, qc3 = st.columns(3)
+        with qc1:
+            if st.button("🎬 Analyze Summer_Hero_30s", use_container_width=True, key="qa_video"):
+                _send_quick_query("Analyze the Summer_Hero_30s video")
+        with qc2:
+            if st.button("❓ What drives brand recall?", use_container_width=True, key="qa_recall"):
+                _send_quick_query("What drives brand recall?")
+        with qc3:
+            if st.button("📋 Show budget rules", use_container_width=True, key="qa_budget"):
+                _send_quick_query("What are the budget tier rules?")
+
+    # Clear chat
+    if st.session_state.hub_chat_messages:
+        st.markdown("---")
+        if st.button("🗑️ Clear Chat", key="clear_hub_chat"):
+            st.session_state.hub_chat_messages = []
+            st.rerun()
 
 
-def generate_agent_response(query: str) -> str:
-    """Generate a response based on the user query."""
+# =============================================================================
+# Demo Chat Helpers
+# =============================================================================
+
+def _send_quick_query(query: str):
+    """Send a quick-action query through the demo chat."""
+    st.session_state.hub_chat_messages.append({"role": "user", "content": query})
+    if DEMO_MODE:
+        st.session_state.demo_query_count += 1
+    upload_context = _build_upload_context()
+    response = _generate_demo_response(query, upload_context)
+    st.session_state.hub_chat_messages.append({"role": "assistant", "content": response})
+    st.rerun()
+
+
+def _build_upload_context() -> dict:
+    """Build context dict from any uploaded files."""
+    context = {"videos": [], "media_plan": None}
+    if st.session_state.hub_uploaded_videos:
+        for v in st.session_state.hub_uploaded_videos:
+            context["videos"].append({"name": v.name, "size_kb": v.size / 1024})
+    if st.session_state.hub_uploaded_media_plan:
+        try:
+            import pandas as pd
+            plan_file = st.session_state.hub_uploaded_media_plan
+            if plan_file.name.endswith(".csv"):
+                df = pd.read_csv(plan_file)
+            else:
+                df = pd.read_excel(plan_file)
+            plan_file.seek(0)
+            context["media_plan"] = {
+                "filename": plan_file.name,
+                "columns": list(df.columns),
+                "rows": len(df),
+                "preview": df.head(5).to_dict(orient="records"),
+            }
+        except Exception as e:
+            context["media_plan"] = {"filename": st.session_state.hub_uploaded_media_plan.name, "error": str(e)}
+    return context
+
+
+def _generate_demo_response(query: str, upload_context: dict) -> str:
+    """Generate a demo response based on query keywords, uploads, and conversation context."""
     query_lower = query.lower()
-    
-    # Check for video analysis queries
+
+    # Check if user is asking about uploaded files / test plan generation
+    has_uploads = bool(upload_context["videos"]) or upload_context["media_plan"] is not None
+    if has_uploads and any(w in query_lower for w in ["plan", "test plan", "generate", "match", "analyze my", "uploaded", "videos"]):
+        return _generate_demo_test_plan(upload_context)
+
+    # Follow-up detection
+    recent_context = " ".join([m["content"].lower() for m in st.session_state.hub_chat_messages[-6:]])
+    is_followup = any(w in query_lower for w in [
+        "why", "how", "tell me more", "explain", "what about", "can you",
+        "elaborate", "details", "example", "compared", "vs", "also",
+        "and what", "follow up", "more on", "expand"
+    ])
+
+    # Video analysis queries
     if "summer" in query_lower or "hero" in query_lower:
-        return """
-**Video Analyzer** activated for Summer_Hero_30s
+        return _resp_video("Summer_Hero_30s", "30 seconds", "73%", "2.1s ✓", True, True, "Positive", "PASS", "87%", "RUN - Strong creative with good brand integration")
+    if "brand" in query_lower and "story" in query_lower:
+        return _resp_video("Brand_Story_15s", "15 seconds", "55%", "1.8s ✓", False, True, "Strong positive", "PASS", "72%", "RUN - Emotionally engaging short-form content")
+    if "product" in query_lower and "focus" in query_lower:
+        return _resp_video("Product_Focus_30s", "30 seconds", "12% ⚠️", "18s ⚠️", True, False, "Neutral", "FAIL", "65%", "DO NOT RUN - Major revisions needed")
 
-```
-Features Extracted:
-├── Duration: 30 seconds
-├── Human Presence: 73% of frames
-├── Logo Visibility: First appears at 2.1s ✓
-├── Product Demo: Yes (45% of frames)
-├── CTA Detected: Yes, at 27s
-└── Emotional Content: Positive
+    # Brand recall
+    if "recall" in query_lower or ("brand" in query_lower and "recall" in recent_context):
+        base = (
+            "**Knowledge Agent** activated (RAG search)\n\n"
+            "Based on analysis of 47 historical tests, the key drivers of **brand recall** are:\n\n"
+            "1. **Logo in First 3 Seconds** (r=0.52, p<0.01) — 2.1x higher brand recall\n"
+            "2. **Human Presence >50%** (r=0.45, p<0.01) — prominent faces drive memorability\n"
+            "3. **Product Demonstration** (r=0.38, p<0.05) — product-in-use improves recall\n\n"
+            "*Sources: CT Rules v2.3, Historical Analysis*"
+        )
+        if is_followup and "recall" in recent_context:
+            base += (
+                "\n\n**Follow-up context:** The logo timing effect is non-linear — 0-3s yields the strongest recall, "
+                "but even 3-5s still outperforms >5s placements. For 15s creatives, logo placement is especially "
+                "critical since viewers have less time to form brand associations."
+            )
+        return base
 
-Prediction: PASS (87% confidence)
-Recommendation: RUN - Strong creative with good brand integration
-```
-"""
-    
-    elif "brand" in query_lower and "story" in query_lower:
-        return """
-**Video Analyzer** activated for Brand_Story_15s
+    # Budget / rules
+    if any(w in query_lower for w in ["budget", "cost", "rules", "tier"]):
+        base = (
+            "**Planning Agent** activated\n\n"
+            "**Budget Tier Rules:**\n\n"
+            "| Budget Range | Video Limit | Display Limit | Cost/Video | Cost/Display |\n"
+            "|-------------|-------------|---------------|------------|-------------|\n"
+            "| $0-5M | 2 | 5 | $5,000 | $3,000 |\n"
+            "| $5M-35M | 8 | 15 | $5,000 | $3,000 |\n"
+            "| $35M-100M | 15 | 30 | $5,000 | $3,000 |\n"
+            "| $100M+ | 25 | 50 | $5,000 | $3,000 |\n\n"
+            "**Expedited Testing:** +50% cost, -3 business days\n\n"
+            "*Source: CT Rules v2.3*"
+        )
+        if is_followup and any(w in recent_context for w in ["budget", "cost"]):
+            base += (
+                "\n\n**Follow-up context:** The budget tier is determined by total annual media spend for the brand, "
+                "not the individual campaign budget. A brand spending $40M annually uses the $35M-100M tier limits "
+                "regardless of individual campaign size."
+            )
+        return base
 
-```
-Features Extracted:
-├── Duration: 15 seconds
-├── Human Presence: 55% of frames
-├── Logo Visibility: First appears at 1.8s ✓
-├── Emotional Content: Strong positive
-└── CTA Detected: Yes, at 13s
+    # Attention
+    if "attention" in query_lower:
+        return (
+            "**Knowledge Agent** activated\n\n"
+            "**Attention Score Drivers:**\n\n"
+            "1. **Scene Diversity** (r=0.48) — multiple scene types maintain viewer interest\n"
+            "2. **Human Eye Contact** (r=0.42) — direct camera gaze captures attention\n"
+            "3. **Motion/Action** (r=0.35) — dynamic content outperforms static\n\n"
+            "Creatives with attention scores >70 have 2.3x higher completion rates.\n\n"
+            "*Sources: Historical Analysis, Q2 Performance Report*"
+        )
 
-Prediction: PASS (72% confidence)
-Recommendation: RUN - Emotionally engaging short-form content
-```
-"""
-    
-    elif "product" in query_lower and "focus" in query_lower:
-        return """
-**Video Analyzer** activated for Product_Focus_30s
+    # Generic follow-up
+    if is_followup and recent_context:
+        return (
+            "**Knowledge Agent** activated\n\n"
+            "Good follow-up! Based on our conversation, here's additional context:\n\n"
+            "The CT Orchestrator combines insights from CT rules, historical test results, and creative feature "
+            "analysis. Could you specify which aspect you'd like me to dig deeper on?\n\n"
+            "For example:\n"
+            "- \"Tell me more about logo timing data\"\n"
+            "- \"How does this apply to a $20M campaign?\"\n"
+            "- \"Show me an example test plan\""
+        )
 
-```
-Features Extracted:
-├── Duration: 30 seconds
-├── Human Presence: 12% of frames ⚠️
-├── Logo Visibility: First appears at 18s ⚠️
-├── Product Demo: Yes (85% of frames)
-├── CTA Detected: No ⚠️
+    # Default
+    return (
+        "**Knowledge Agent** activated\n\n"
+        "I can help you with:\n"
+        "- **Video Analysis**: \"Analyze Summer_Hero_30s\" — predictions and recommendations\n"
+        "- **Performance Drivers**: \"What drives brand recall?\" — key factors\n"
+        "- **Budget Rules**: \"What are the budget tier rules?\" — limits and costs\n"
+        "- **Test Plan Generation**: Upload videos + media plan, then ask \"Generate a test plan\"\n"
+        "- **Follow-ups**: Ask follow-up questions on any topic!\n\n"
+        "Try asking a specific question about creative testing!"
+    )
 
-Prediction: FAIL (65% confidence)
 
-Issues Identified:
-• Low human presence
-• Late logo appearance
-• No clear CTA
+def _resp_video(name, duration, human_pct, logo_timing, has_product, has_cta, emotion, pred, conf, rec):
+    """Format a video analysis response."""
+    icon = "✅" if pred == "PASS" else "❌"
+    return (
+        f"**Video Analyzer → Analysis Agent** pipeline for {name}\n\n"
+        f"```\n"
+        f"Features Extracted:\n"
+        f"├── Duration: {duration}\n"
+        f"├── Human Presence: {human_pct}\n"
+        f"├── Logo Visibility: First appears at {logo_timing}\n"
+        f"├── Product Demo: {'Yes' if has_product else 'No'}\n"
+        f"├── CTA Detected: {'Yes' if has_cta else 'No ⚠️'}\n"
+        f"└── Emotional Content: {emotion}\n\n"
+        f"Prediction: {pred} ({conf} confidence) {icon}\n"
+        f"Recommendation: {rec}\n"
+        f"```"
+    )
 
-Recommendation: DO NOT RUN - Major revisions needed
-```
-"""
-    
-    elif "recall" in query_lower or "brand" in query_lower:
-        return """
-**Knowledge Agent** activated (RAG search)
 
-Based on analysis of 47 historical tests, the key drivers of **brand recall** are:
+def _generate_demo_test_plan(upload_context: dict) -> str:
+    """Generate a demo test plan from uploaded file context."""
+    videos = upload_context.get("videos", [])
+    media_plan = upload_context.get("media_plan")
+    lines = ["**Planning Agent** activated — generating creative testing plan\n"]
 
-1. **Logo in First 3 Seconds** (r=0.52, p<0.01)
-   - Creatives with early logo placement show 2.1x higher brand recall
-   
-2. **Human Presence >50%** (r=0.45, p<0.01)
-   - Videos with prominent human presence drive better recall
-   
-3. **Product Demonstration** (r=0.38, p<0.05)
-   - Showing product in use improves memorability
+    if videos:
+        lines.append(f"**📹 {len(videos)} Video(s) Detected:**\n")
+        for i, v in enumerate(videos, 1):
+            lines.append(f"{i}. **{v['name']}** ({v['size_kb']:.0f} KB)")
+        lines.append("")
 
-*Sources: CT Rules v2.3, Historical Analysis*
-"""
-    
-    elif "budget" in query_lower or "cost" in query_lower or "rules" in query_lower:
-        return """
-**Planning Agent** activated
+    if media_plan and "error" not in media_plan:
+        lines.append(f"**📊 Media Plan:** {media_plan['filename']} ({media_plan['rows']} line items)")
+        lines.append(f"Columns: {', '.join(media_plan['columns'][:8])}\n")
 
-**Budget Tier Rules:**
+    num_videos = len(videos) if videos else 3
+    lines.append("---\n")
+    lines.append("### 📋 Recommended Creative Testing Plan\n")
+    lines.append(f"**Budget Tier:** $5M-35M (assumed) → up to **8 videos**, **15 display** assets")
+    lines.append(f"**Videos for Testing:** {min(num_videos, 8)} of {num_videos} uploaded")
+    lines.append(f"**Estimated Cost:** ${min(num_videos, 8) * 5000:,}")
+    lines.append(f"**Timeline:** ~10 business days\n")
 
-| Budget Range | Video Limit | Display Limit | Cost/Video | Cost/Display |
-|-------------|-------------|---------------|------------|--------------|
-| $0-5M | 2 | 5 | $5,000 | $3,000 |
-| $5M-35M | 8 | 15 | $5,000 | $3,000 |
-| $35M-100M | 15 | 30 | $5,000 | $3,000 |
-| $100M+ | 25 | 50 | $5,000 | $3,000 |
-
-**Expedited Testing:** +50% cost, -3 business days
-
-*Source: CT Rules v2.3*
-"""
-    
-    elif "attention" in query_lower:
-        return """
-**Knowledge Agent** activated
-
-**Attention Score Drivers:**
-
-1. **Scene Diversity** (r=0.48) - Multiple scene types maintain viewer interest
-2. **Human Eye Contact** (r=0.42) - Direct camera gaze captures attention
-3. **Motion/Action** (r=0.35) - Dynamic content outperforms static
-
-Creatives with attention scores >70 have 2.3x higher completion rates.
-
-*Sources: Historical Analysis, Q2 Performance Report*
-"""
-    
+    lines.append("**Prioritization (by impressions):**\n")
+    if videos:
+        for i, v in enumerate(videos[:8], 1):
+            lines.append(f"{i}. **{v['name']}** — ✅ Selected")
     else:
-        return """
-**Knowledge Agent** activated
+        lines.append("Upload videos to see prioritized creative selection.\n")
 
-I can help you with:
-- **Video Analysis**: "Analyze [video name]" - Get predictions and recommendations
-- **Performance Drivers**: "What drives [metric]?" - Understand key factors
-- **Budget Rules**: "What are the budget rules?" - See tier limits and costs
-- **Best Practices**: "How to improve brand recall?" - Get actionable tips
-
-Try asking a specific question about creative testing!
-"""
+    lines.append("\n**Next Steps:**")
+    lines.append("1. Confirm budget tier and campaign details")
+    lines.append("2. Videos analyzed for features (human presence, logo timing, CTA, etc.)")
+    lines.append("3. Ensemble model predicts pass/fail with diagnostic scores")
+    lines.append("4. Final test plan generated with recommendations\n")
+    lines.append("*Ask follow-up questions like \"What if our budget is $50M?\" or \"Analyze the first video\"*")
+    return "\n".join(lines)
 
 
-def show_results_demo():
-    """Results page for demo mode with pre-scored videos."""
-    
+# =============================================================================
+# Page Routing (non-demo pages delegate to real implementations)
+# =============================================================================
+
+def show_planning_agent():
+    """Planning Agent page — conversational test planning."""
+    try:
+        import agents.planning_agent  # noqa: F401
+        from pages.planning_agent import render
+        render()
+    except ImportError:
+        try:
+            import agents.planning_agent  # noqa: F401
+            from frontend.pages.planning_agent import render
+            render()
+        except ImportError:
+            st.markdown("# 🤖 Planning Agent")
+            st.info(
+                "The Planning Agent requires the multi-agent system modules (`agents.graph`, `agents.planning_agent`) "
+                "which are not yet built. Use the **Agent Hub** for chat-based planning in the meantime."
+            )
+            if st.button("Go to Agent Hub →"):
+                st.session_state.nav_page = "🧠 Agent Hub"
+                st.rerun()
+
+
+def show_planner():
+    """CT Planner page."""
+    try:
+        from pages.ct_planner import render_planner
+        render_planner()
+    except ImportError:
+        try:
+            from frontend.pages.ct_planner import render_planner
+            render_planner()
+        except ImportError as e:
+            st.markdown("# 📋 CT Planner")
+            st.warning(f"CT Planner requires full dependencies: {e}")
+
+
+def show_creative_scorer():
+    """Creative Scorer page."""
+    try:
+        import services.creative_scorer  # noqa: F401
+        from pages.creative_scorer import render
+        render()
+    except ImportError:
+        try:
+            import services.creative_scorer  # noqa: F401
+            from frontend.pages.creative_scorer import render
+            render()
+        except ImportError:
+            st.markdown("# 🔮 Creative Scorer")
+            st.info(
+                "The Creative Scorer requires `services.creative_scorer` and Ollama for local AI vision scoring. "
+                "Use the **Agent Hub** to analyze pre-scored videos in the meantime."
+            )
+            if st.button("Go to Agent Hub →", key="scorer_to_hub"):
+                st.session_state.nav_page = "🧠 Agent Hub"
+                st.rerun()
+
+
+def show_results():
+    """Results page — demo version or full version."""
+    if DEMO_MODE:
+        _show_results_demo()
+    else:
+        try:
+            from pages.results import render_results
+            render_results()
+        except ImportError:
+            try:
+                from frontend.pages.results import render_results
+                render_results()
+            except ImportError:
+                _show_results_demo()
+
+
+def show_insights():
+    """Insights/Chat page."""
+    try:
+        from pages.insights import render_insights
+        render_insights()
+    except ImportError:
+        try:
+            from frontend.pages.insights import render_insights
+            render_insights()
+        except ImportError as e:
+            st.markdown("# 💬 Insights Chat")
+            st.warning(f"Insights Chat requires full dependencies: {e}")
+
+
+def show_admin():
+    """Admin page."""
+    try:
+        from pages.admin import render_admin
+        render_admin()
+    except ImportError:
+        try:
+            from frontend.pages.admin import render_admin
+            render_admin()
+        except ImportError as e:
+            st.markdown("# ⚙️ Admin")
+            st.warning(f"Admin panel requires full dependencies: {e}")
+
+
+# =============================================================================
+# Results Demo Page
+# =============================================================================
+
+def _show_results_demo():
+    """Results page with pre-scored sample videos (demo mode)."""
     st.markdown("# 📊 Results & Predictions")
     st.markdown("Explore pre-scored sample videos and their predictions.")
-    
     st.markdown("---")
-    
+
     sample_videos = get_sample_videos()
-    
-    # Video selector
     video_names = [v["name"] for v in sample_videos]
-    
-    # Check if a video was pre-selected
+
     default_index = 0
     if st.session_state.selected_video:
         for i, v in enumerate(sample_videos):
             if v["id"] == st.session_state.selected_video:
                 default_index = i
                 break
-    
+
     selected_name = st.selectbox("Select a video to analyze:", video_names, index=default_index)
-    
-    # Find selected video
     selected = next(v for v in sample_videos if v["name"] == selected_name)
-    
+
     st.markdown("---")
-    
-    # Main prediction display
+
     col1, col2 = st.columns([1, 2])
-    
     with col1:
         st.markdown(f"### 🎬 {selected['name']}")
         st.caption(f"Duration: {selected['duration']}")
-        
-        # Prediction badge
         if selected["prediction"] == "PASS":
             st.success(f"### ✅ {selected['prediction']}")
         else:
             st.error(f"### ❌ {selected['prediction']}")
-        
         st.metric("Confidence", selected["confidence"])
-    
+
     with col2:
         st.markdown("### 📈 Diagnostic Scores")
-        
-        # Display diagnostic scores as metrics
         cols = st.columns(5)
-        diagnostics = selected["diagnostics"]
-        
-        for i, (key, value) in enumerate(diagnostics.items()):
+        for i, (key, value) in enumerate(selected["diagnostics"].items()):
             with cols[i]:
                 label = key.replace("_score", "").replace("_", " ").title()
-                delta_color = "normal" if value >= 60 else "inverse"
                 st.metric(label, f"{value}/100")
-    
+
     st.markdown("---")
-    
-    # Features and Recommendation
+
     col1, col2 = st.columns(2)
-    
     with col1:
         st.markdown("### 🔍 Extracted Features")
-        features = selected["features"]
-        
-        for key, value in features.items():
+        for key, value in selected["features"].items():
             label = key.replace("_", " ").title()
             if isinstance(value, bool):
-                icon = "✅" if value else "❌"
-                st.markdown(f"- **{label}:** {icon}")
+                st.markdown(f"- **{label}:** {'✅' if value else '❌'}")
             elif isinstance(value, float):
                 st.markdown(f"- **{label}:** {value:.0%}")
             else:
                 st.markdown(f"- **{label}:** {value}")
-    
     with col2:
         st.markdown("### 💡 Recommendation")
         st.info(selected["recommendation"])
-        
         if "improvements" in selected:
             st.markdown("**Suggested Improvements:**")
             for imp in selected["improvements"]:
                 st.markdown(f"- {imp}")
-    
+
     st.markdown("---")
-    
-    # Summary table
     st.markdown("### 📋 All Videos Summary")
-    
+    import pandas as pd
     summary_data = []
     for v in sample_videos:
         summary_data.append({
-            "Video": v["name"],
-            "Duration": v["duration"],
-            "Prediction": v["prediction"],
-            "Confidence": v["confidence"],
+            "Video": v["name"], "Duration": v["duration"],
+            "Prediction": v["prediction"], "Confidence": v["confidence"],
             "Attention": v["diagnostics"]["attention_score"],
             "Brand Recall": v["diagnostics"]["brand_recall_score"],
             "Message Clarity": v["diagnostics"]["message_clarity_score"],
         })
-    
-    import pandas as pd
-    df = pd.DataFrame(summary_data)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(summary_data), use_container_width=True, hide_index=True)
 
 
-def show_planner():
-    """CT Planner page - only available in local mode."""
-    st.markdown("# 📋 CT Planner")
-    st.warning("CT Planner requires full dependencies. Please run locally for this feature.")
-    st.markdown("[View setup instructions](https://github.com/akshargupta84/ct-orchestrator#quick-start)")
-
-
-def show_insights():
-    """Insights/Chat page - only available in local mode."""
-    st.markdown("# 💬 Insights Chat")
-    st.warning("Insights Chat requires full dependencies. Please run locally for this feature.")
-    st.markdown("[View setup instructions](https://github.com/akshargupta84/ct-orchestrator#quick-start)")
-
-
-def show_admin():
-    """Admin page - only available in local mode."""
-    st.markdown("# ⚙️ Admin")
-    st.warning("Admin panel requires full dependencies. Please run locally for this feature.")
-    st.markdown("[View setup instructions](https://github.com/akshargupta84/ct-orchestrator#quick-start)")
-
+# =============================================================================
+# Entry Point
+# =============================================================================
 
 if __name__ == "__main__":
     main()
