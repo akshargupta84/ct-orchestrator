@@ -686,7 +686,133 @@ def _build_upload_context() -> dict:
 
 
 def _generate_demo_response(query: str, upload_context: dict) -> str:
-    """Generate a demo response based on query keywords, uploads, and conversation context."""
+    """Generate a response — uses Anthropic API if available, falls back to keyword matching."""
+    
+    # Try API-powered response first
+    api_response = _try_api_response(query, upload_context)
+    if api_response:
+        return api_response
+    
+    # Fallback: keyword matching for when no API key is available
+    return _generate_keyword_response(query, upload_context)
+
+
+def _try_api_response(query: str, upload_context: dict):
+    """Try to generate a response using the Anthropic API. Returns None if unavailable."""
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key or len(api_key) < 20:
+        return None
+    
+    try:
+        from anthropic import Anthropic
+    except ImportError:
+        return None
+    
+    # Build conversation history for context
+    history_messages = []
+    for msg in st.session_state.hub_chat_messages[-12:]:  # Last 12 messages
+        history_messages.append({"role": msg["role"], "content": msg["content"]})
+    
+    # Add current query
+    history_messages.append({"role": "user", "content": query})
+    
+    # Build upload context string
+    upload_text = ""
+    if upload_context["videos"]:
+        video_names = [v["name"] for v in upload_context["videos"]]
+        upload_text += f"\n\nUser has uploaded these videos: {', '.join(video_names)}"
+    if upload_context["media_plan"] and "error" not in upload_context["media_plan"]:
+        mp = upload_context["media_plan"]
+        upload_text += f"\n\nUser has uploaded a media plan: {mp['filename']} ({mp['rows']} rows, columns: {', '.join(mp['columns'])})"
+        upload_text += f"\nPreview: {mp['preview']}"
+    
+    system_prompt = f"""You are the CT Orchestrator, a multi-agent AI system for creative testing in media agencies. You help brands predict which video ads will perform well in brand lift studies before spending $10K-$25K on actual testing.
+
+You have 4 specialized agents:
+1. **Planning Agent** — Validates test plans against business rules, budget tiers, costs
+2. **Analysis Agent** — Predicts pass/fail using an ensemble ML model (40% Logistic Regression + 60% Random Forest), generates diagnostic scores
+3. **Video Analyzer** — Extracts creative features from video files using LLaVA vision AI (human presence, logo timing, CTA, emotion, etc.)
+4. **Knowledge Agent** — RAG-powered Q&A over CT rules and historical test results
+
+When responding, indicate which agent(s) are responding, e.g. "**Knowledge Agent** activated" or "**Planning Agent → Analysis Agent** pipeline".
+
+## Pre-Scored Sample Videos in This Demo
+
+1. **Summer_Hero_30s** (30 sec) — PASS (87% confidence)
+   - Features: Human presence 73%, logo at 2.1s ✓, product demo 45%, CTA at 27s, positive emotion
+   - Diagnostics: Attention 78, Brand Recall 82, Message Clarity 75, Emotional Resonance 71, Uniqueness 68
+   - Recommendation: RUN — Strong creative with excellent human presence and early brand integration
+
+2. **Brand_Story_15s** (15 sec) — PASS (72% confidence)
+   - Features: Human presence 55%, logo at 1.8s ✓, no product demo, CTA at 13s, strong positive emotion
+   - Diagnostics: Attention 70, Brand Recall 75, Message Clarity 68, Emotional Resonance 74, Uniqueness 62
+   - Recommendation: RUN — Emotionally engaging short-form. Consider A/B with longer format
+
+3. **Product_Focus_30s** (30 sec) — FAIL (65% confidence)
+   - Features: Human presence 12% ⚠️, logo at 18s ⚠️, product demo 85%, no CTA ⚠️, neutral emotion
+   - Diagnostics: Attention 45, Brand Recall 38, Message Clarity 62, Emotional Resonance 41, Uniqueness 55
+   - Recommendation: DO NOT RUN — Low human presence, late logo, no CTA. Major revisions needed
+   - Improvements: Add human talent, move logo to first 3s, add CTA in final 5s, add emotional storytelling
+
+4. **Lifestyle_60s** (60 sec) — PASS (79% confidence)
+   - Features: Human presence 68%, no logo in first 3s ⚠️, product demo 40%, CTA present, positive emotion
+   - Diagnostics: Attention 76, Brand Recall 71, Message Clarity 73, Emotional Resonance 80, Uniqueness 72
+   - Recommendation: RUN — Strong emotional resonance. Consider earlier logo placement
+
+## Historical Data & Performance Drivers (from 47 historical tests)
+
+**Brand Recall drivers:**
+- Logo in first 3 seconds (r=0.52, p<0.01) — 2.1x higher brand recall
+- Human presence >50% (r=0.45, p<0.01) — prominent faces drive memorability
+- Product demonstration (r=0.38, p<0.05) — product-in-use improves recall
+- Logo timing effect is non-linear: 0-3s strongest, 3-5s still good, >5s poor
+
+**Attention Score drivers:**
+- Scene diversity (r=0.48) — multiple scene types maintain interest
+- Human eye contact (r=0.42) — direct camera gaze captures attention
+- Motion/Action (r=0.35) — dynamic > static. Attention >70 → 2.3x completion rate
+
+**Overall pass rate:** ~35% (17 of 47 tests passed brand lift threshold)
+
+## Budget Tier Rules (CT Rules v2.3)
+
+| Budget Range | Video Limit | Display Limit | Cost/Video | Cost/Display |
+|-------------|-------------|---------------|------------|-------------|
+| $0-5M | 2 | 5 | $5,000 | $3,000 |
+| $5M-35M | 8 | 15 | $5,000 | $3,000 |
+| $35M-100M | 15 | 30 | $5,000 | $3,000 |
+| $100M+ | 25 | 50 | $5,000 | $3,000 |
+
+Budget tier determined by total annual media spend for the brand, not individual campaign budget.
+Expedited testing: +50% cost, -3 business days.
+{upload_text}
+
+## Response Guidelines
+- Be specific, data-driven, and cite sources (CT Rules v2.3, Historical Analysis, etc.)
+- Reference the actual sample video data when discussing specific creatives
+- Support follow-up questions using conversation context
+- Keep responses focused and concise (not overly long)
+- When asked about historical results, reference the 47 historical tests and specific correlations
+- When asked to generate test plans, use the budget tier rules and uploaded file context"""
+
+    try:
+        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+        client = Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model=model,
+            max_tokens=1024,
+            system=system_prompt,
+            messages=history_messages,
+        )
+        return response.content[0].text
+    except Exception as e:
+        # API call failed — fall back to keyword matching
+        print(f"API call failed: {e}")
+        return None
+
+
+def _generate_keyword_response(query: str, upload_context: dict) -> str:
+    """Fallback keyword-based responses when no API key is available."""
     query_lower = query.lower()
 
     # Check if user is asking about uploaded files / test plan generation
