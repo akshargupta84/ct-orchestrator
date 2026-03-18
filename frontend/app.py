@@ -53,11 +53,8 @@ st.markdown("""
 
 # GOatcounter analytics to track number of visitors
 components.html("""
-<script>
-    window.goatcounter = { path: '/ct-orchestrator' };
-</script>
-<script data-goatcounter="https://akshargupta84.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+<img src="https://akshargupta84.goatcounter.com/count?p=/ct-orchestrator&t=CT+Orchestrator"
+     alt="" style="position:absolute;left:-9999px">
 """, height=0)
 
 # =============================================================================
