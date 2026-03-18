@@ -8,6 +8,7 @@ Supports two modes:
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 from pathlib import Path
 import sys
 import json
@@ -50,6 +51,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# GOatcounter analytics to track number of visitors
+components.html("""
+<script>
+    window.goatcounter = { path: '/ct-orchestrator' };
+</script>
+<script data-goatcounter="https://akshargupta84.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+""", height=0)
 
 # =============================================================================
 # Session State
