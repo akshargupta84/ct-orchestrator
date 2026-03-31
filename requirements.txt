@@ -21,6 +21,9 @@ plotly>=5.0.0
  
 # LLM (for Agent Hub chat on HF Spaces)
 anthropic>=0.39.0
+
+# PDF Processing (needed by rules engine)
+pdfplumber>=0.10.0
  
 # Note: For full local functionality with video scoring, also install:
 #   pip install -r requirements-local.txt
