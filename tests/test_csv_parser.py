@@ -49,8 +49,8 @@ class TestCSVParserBasics:
         result = parser.parse(sample_csv_content, campaign_id="TEST_001", test_plan_id="PLAN_001")
 
         creative = result.results.results[0]
-        # Should have at least one KPI result
-        assert len(creative.kpi_results) > 0
+        # Should have lift values for at least awareness
+        assert creative.awareness_lift is not None or creative.consideration_lift is not None
 
 
 class TestCSVParserEdgeCases:
