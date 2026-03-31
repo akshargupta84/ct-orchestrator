@@ -36,8 +36,8 @@ class TestCSVParserBasics:
         result = parser.parse(sample_csv_content, campaign_id="TEST_001", test_plan_id="PLAN_001")
 
         assert result.results is not None
-        assert len(result.results.creatives) > 0
-        creative = result.results.creatives[0]
+        assert len(result.results.results) > 0
+        creative = result.results.results[0]
         assert creative.creative_id is not None
         assert creative.creative_name is not None
 
@@ -48,7 +48,7 @@ class TestCSVParserBasics:
         parser = CSVParser()
         result = parser.parse(sample_csv_content, campaign_id="TEST_001", test_plan_id="PLAN_001")
 
-        creative = result.results.creatives[0]
+        creative = result.results.results[0]
         # Should have at least one KPI result
         assert len(creative.kpi_results) > 0
 

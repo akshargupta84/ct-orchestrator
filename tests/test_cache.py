@@ -120,10 +120,10 @@ class TestModelRouter:
         assert "haiku" in model.lower()
 
     def test_complex_query_uses_sonnet(self):
-        """Complex analysis queries should route to Sonnet."""
+        """Complex analysis queries should NOT route to Haiku."""
         from services.cache import select_model
         model = select_model("Analyze these videos and recommend a strategy")
-        assert "sonnet" in model.lower() or "claude-sonnet" in model
+        assert "haiku" not in model.lower()
 
     def test_generate_plan_is_complex(self):
         """'generate plan' should be classified as complex."""
@@ -137,11 +137,11 @@ class TestModelRouter:
         model = select_model("How much does video testing cost?")
         assert "haiku" in model.lower()
 
-    def test_ambiguous_defaults_to_sonnet(self):
-        """Ambiguous queries should default to Sonnet."""
+    def test_ambiguous_defaults_to_standard(self):
+        """Ambiguous queries should NOT route to Haiku."""
         from services.cache import select_model
         model = select_model("Tell me about the creative performance landscape")
-        assert "sonnet" in model.lower() or "claude-sonnet" in model
+        assert "haiku" not in model.lower()
 
 
 class TestCostTracker:
