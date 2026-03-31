@@ -1,0 +1,105 @@
+# =============================================================================
+# CT Orchestrator - Docker Compose
+#
+# Services:
+#   app     — Streamlit frontend + backend (port 8501)
+#   ollama  — Local LLaVA vision model for video scoring
+#   chroma  — ChromaDB vector store for RAG
+#
+# Usage:
+#   docker compose up              # Start all services
+#   docker compose up app          # Just the app (no Ollama/Chroma)
+#   docker compose up -d           # Background mode
+#   docker compose down            # Stop all
+#   docker compose logs -f app     # Follow app logs
+#
+# First run:
+#   docker compose up -d ollama
+#   docker compose exec ollama ollama pull llava:13b
+#   docker compose up
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Streamlit App
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ct-orchestrator-app
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - DEMO_MODE=false
+      - OLLAMA_HOST=http://ollama:11434
+      - CHROMA_PERSIST_DIR=/app/data/chroma
+      - DATABASE_PATH=/app/data/campaigns.db
+    volumes:
+      - app-data:/app/data           # Persistent data (plans, results, DB)
+      - ./master_data:/app/master_data  # CT rules (mount from host)
+    depends_on:
+      ollama:
+        condition: service_started
+      chroma:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # Ollama — Local LLM for video frame analysis
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ct-orchestrator-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama    # Persist downloaded models
+    restart: unless-stopped
+    # GPU support (uncomment if you have NVIDIA GPU + nvidia-docker)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ---------------------------------------------------------------------------
+  # ChromaDB — Vector store for RAG
+  # ---------------------------------------------------------------------------
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: ct-orchestrator-chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma    # Persist vector store
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+# =============================================================================
+# Volumes — Named volumes for data persistence
+# =============================================================================
+volumes:
+  app-data:
+    driver: local
+  ollama-models:
+    driver: local
+  chroma-data:
+    driver: local

@@ -1,0 +1,676 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: transparent;
+    color: #e4e4e7;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .header h1 {
+    font-size: 40px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+
+  .header h1 span {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .header .subtitle {
+    font-size: 16px;
+    color: #71717a;
+    margin-top: 12px;
+    line-height: 1.5;
+    max-width: 640px;
+  }
+
+  /* ── Lifecycle Section ── */
+  .lifecycle {
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .lifecycle-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .lifecycle-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .lifecycle-title.campaign { color: #60a5fa; }
+  .lifecycle-title.creative { color: #a78bfa; }
+
+  .lifecycle-description {
+    font-size: 13px;
+    color: #52525b;
+    font-weight: 400;
+  }
+
+  /* ── Stage Flow ── */
+  .stage-flow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    position: relative;
+  }
+
+  /* Connecting line behind stages */
+  .stage-flow::before {
+    content: '';
+    position: absolute;
+    top: 36px;
+    left: 40px;
+    right: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, #27272a 0%, #3f3f46 50%, #27272a 100%);
+    z-index: 0;
+  }
+
+  .stage-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Stage Card ── */
+  .stage-card {
+    width: 100%;
+    max-width: 190px;
+    text-align: center;
+  }
+
+  .stage-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #27272a;
+    border: 2px solid #3f3f46;
+    margin: 0 auto 14px;
+    transition: all 0.3s ease;
+  }
+
+  .stage-card.active .stage-dot {
+    background: #ffffff;
+    border-color: #ffffff;
+    box-shadow: 0 0 12px rgba(255,255,255,0.2);
+  }
+
+  .stage-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #a1a1aa;
+    margin-bottom: 4px;
+    transition: color 0.3s ease;
+  }
+
+  .stage-card.active .stage-name {
+    color: #ffffff;
+  }
+
+  .stage-meta {
+    font-size: 11px;
+    color: #52525b;
+    font-style: italic;
+  }
+
+  .stage-card.active .stage-meta {
+    color: #71717a;
+  }
+
+  /* ── CT Component Card ── */
+  .ct-card {
+    margin-top: 20px;
+    width: 100%;
+    max-width: 210px;
+    border-radius: 14px;
+    padding: 18px 16px;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .ct-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .ct-card::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 10px;
+    background: #3f3f46;
+  }
+
+  .ct-card-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ct-card-label .indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .ct-card-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .ct-card-desc {
+    font-size: 12px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+
+  .ct-card-tab {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* Component themes */
+  .ct-card.ct-plan {
+    background: rgba(59, 130, 246, 0.06);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+  }
+  .ct-card.ct-plan .ct-card-label { color: #3b82f6; }
+  .ct-card.ct-plan .indicator { background: #3b82f6; }
+  .ct-card.ct-plan .ct-card-desc { color: #93c5fd; }
+  .ct-card.ct-plan .ct-card-tab { background: rgba(59, 130, 246, 0.12); color: #60a5fa; }
+  .ct-card.ct-plan:hover { box-shadow: 0 8px 24px rgba(59, 130, 246, 0.1); }
+
+  .ct-card.ct-results {
+    background: rgba(168, 85, 247, 0.06);
+    border: 1px solid rgba(168, 85, 247, 0.15);
+  }
+  .ct-card.ct-results .ct-card-label { color: #a855f7; }
+  .ct-card.ct-results .indicator { background: #a855f7; }
+  .ct-card.ct-results .ct-card-desc { color: #c4b5fd; }
+  .ct-card.ct-results .ct-card-tab { background: rgba(168, 85, 247, 0.12); color: #c084fc; }
+  .ct-card.ct-results:hover { box-shadow: 0 8px 24px rgba(168, 85, 247, 0.1); }
+
+  .ct-card.ct-knowledge {
+    background: rgba(34, 197, 94, 0.06);
+    border: 1px solid rgba(34, 197, 94, 0.15);
+  }
+  .ct-card.ct-knowledge .ct-card-label { color: #22c55e; }
+  .ct-card.ct-knowledge .indicator { background: #22c55e; }
+  .ct-card.ct-knowledge .ct-card-desc { color: #86efac; }
+  .ct-card.ct-knowledge .ct-card-tab { background: rgba(34, 197, 94, 0.12); color: #4ade80; }
+  .ct-card.ct-knowledge:hover { box-shadow: 0 8px 24px rgba(34, 197, 94, 0.1); }
+
+  .ct-card.ct-scores {
+    background: rgba(251, 146, 60, 0.06);
+    border: 1px solid rgba(251, 146, 60, 0.15);
+  }
+  .ct-card.ct-scores .ct-card-label { color: #f97316; }
+  .ct-card.ct-scores .indicator { background: #f97316; }
+  .ct-card.ct-scores .ct-card-desc { color: #fed7aa; }
+  .ct-card.ct-scores .ct-card-tab { background: rgba(251, 146, 60, 0.12); color: #fb923c; }
+  .ct-card.ct-scores:hover { box-shadow: 0 8px 24px rgba(251, 146, 60, 0.1); }
+
+  /* ── Empty spacer for stages without components ── */
+  .ct-empty {
+    margin-top: 20px;
+    height: 0;
+  }
+
+  /* ── Bridge Section ── */
+  .bridge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 0;
+    position: relative;
+  }
+
+  .bridge-line {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: repeating-linear-gradient(
+      90deg,
+      #3f3f46 0px,
+      #3f3f46 6px,
+      transparent 6px,
+      transparent 12px
+    );
+  }
+
+  .bridge-pill {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 28px;
+    background: #18181b;
+    border: 1px solid #3f3f46;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #a1a1aa;
+  }
+
+  .bridge-pill .arrow {
+    color: #52525b;
+    font-size: 16px;
+  }
+
+  /* ── Positioning Label ── */
+  .positioning {
+    margin-top: 64px;
+    padding: 32px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 16px;
+  }
+
+  .positioning-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #52525b;
+    margin-bottom: 16px;
+  }
+
+  .positioning-text {
+    font-size: 15px;
+    color: #a1a1aa;
+    line-height: 1.7;
+    max-width: 800px;
+  }
+
+  .positioning-text strong {
+    color: #e4e4e7;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 24px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #71717a;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .legend-item.inactive .legend-dot {
+    background: #3f3f46;
+  }
+
+  /* ── Cross-lifecycle flow arrows ── */
+  .cross-flow {
+    position: relative;
+    margin: -8px 0 8px;
+    padding: 0 0 0 0;
+  }
+
+  .cross-flow-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+
+  .flow-path {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    background: rgba(59, 130, 246, 0.04);
+    border: 1px dashed rgba(59, 130, 246, 0.2);
+  }
+
+  .flow-path .flow-step {
+    font-size: 11px;
+    font-weight: 600;
+    color: #71717a;
+    white-space: nowrap;
+  }
+
+  .flow-path .flow-step.highlight-blue {
+    color: #60a5fa;
+  }
+
+  .flow-path .flow-step.highlight-purple {
+    color: #c084fc;
+  }
+
+  .flow-path .flow-step.highlight-evaluate {
+    color: #e4e4e7;
+    background: rgba(255,255,255,0.06);
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .flow-path .flow-arrow {
+    color: #3f3f46;
+    font-size: 14px;
+  }
+
+  /* ── Evaluate card style ── */
+  .ct-card.ct-evaluate {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .ct-card.ct-evaluate .ct-card-label { color: #a1a1aa; }
+  .ct-card.ct-evaluate .indicator { background: #e4e4e7; }
+  .ct-card.ct-evaluate .ct-card-desc { color: #a1a1aa; }
+  .ct-card.ct-evaluate .ct-card-tab { background: rgba(255, 255, 255, 0.08); color: #a1a1aa; }
+  .ct-card.ct-evaluate:hover { box-shadow: 0 8px 24px rgba(255, 255, 255, 0.05); }
+
+  /* ── Responsive ── */
+  @media (max-width: 1000px) {
+    .stage-flow { flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .stage-flow::before { display: none; }
+    .ct-card { max-width: 100%; }
+    .stage-wrapper { flex: 0 0 30%; }
+  }
+
+  @media (max-width: 600px) {
+    .stage-wrapper { flex: 0 0 45%; }
+    .header h1 { font-size: 28px; }
+  }
+</style>
+<div class="container">
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <div class="header">
+    <h1>Where <span>CT Orchestrator</span> fits</h1>
+    <p class="subtitle">
+      Four AI-powered components, each designed for a specific stage of the campaign and creative production workflows.
+      The gray stages are human-driven. The highlighted stages are where data and AI add the most value.
+    </p>
+  </div>
+
+  <!-- ═══════════ CAMPAIGN LIFECYCLE ═══════════ -->
+  <div class="lifecycle">
+    <div class="lifecycle-header">
+      <div class="lifecycle-title campaign">Campaign Lifecycle</div>
+      <div class="lifecycle-description">What to test, when to launch, and what happened</div>
+    </div>
+
+    <div class="stage-flow">
+
+      <!-- Brief -->
+      <div class="stage-wrapper">
+        <div class="stage-card">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Brief</div>
+          <div class="stage-meta">Human-driven</div>
+        </div>
+        <div class="ct-empty"></div>
+      </div>
+
+      <!-- Strategy -->
+      <div class="stage-wrapper">
+        <div class="stage-card">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Strategy</div>
+          <div class="stage-meta">Human-driven</div>
+        </div>
+        <div class="ct-empty"></div>
+      </div>
+
+      <!-- Plan ← CT Plan -->
+      <div class="stage-wrapper">
+        <div class="stage-card active">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Plan</div>
+        </div>
+        <div class="ct-card ct-plan">
+          <div class="ct-card-label">
+            <span class="indicator"></span>
+            CT Orchestrator
+          </div>
+          <div class="ct-card-name">Generate creative test plan</div>
+          <div class="ct-card-desc">
+            Upload a media plan and video creatives. Auto-match, detect duplicates, validate against CT rules, and generate a test plan with cost and timeline.
+          </div>
+          <span class="ct-card-tab">CT Planner tab</span>
+        </div>
+      </div>
+
+      <!-- Launch / Optimization ← Results Agent -->
+      <div class="stage-wrapper">
+        <div class="stage-card active">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Launch /<br>Optimization</div>
+        </div>
+        <div class="ct-card ct-results">
+          <div class="ct-card-label">
+            <span class="indicator"></span>
+            CT Orchestrator
+          </div>
+          <div class="ct-card-name">Optimize creatives in flight</div>
+          <div class="ct-card-desc">
+            Analyze creative test outcomes and diagnostics. AI-driven insights across attention, recall, clarity, emotion, and uniqueness. Generates stakeholder reports.
+          </div>
+          <span class="ct-card-tab">Results tab</span>
+        </div>
+      </div>
+
+      <!-- Measure -->
+      <div class="stage-wrapper">
+        <div class="stage-card">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Measure</div>
+          <div class="stage-meta">Platform data</div>
+        </div>
+        <div class="ct-empty"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ BRIDGE ═══════════ -->
+  <div class="bridge">
+    <div class="bridge-line"></div>
+    <div class="bridge-pill">
+      <span class="arrow">↕</span>
+      Creative Steps
+      <span style="color: #52525b; font-weight: 400; font-size: 12px;">Video analysis pipeline connecting both lifecycles</span>
+    </div>
+  </div>
+
+  <!-- ═══════════ CREATIVE PRODUCTION LIFECYCLE ═══════════ -->
+  <div class="lifecycle">
+    <div class="lifecycle-header">
+      <div class="lifecycle-title creative">Creative Production Lifecycle</div>
+      <div class="lifecycle-description">What to make, how good it is, and what to learn from it</div>
+    </div>
+
+    <div class="stage-flow">
+
+      <!-- Brief ← Knowledge Agent -->
+      <div class="stage-wrapper">
+        <div class="stage-card active">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Brief</div>
+        </div>
+        <div class="ct-card ct-knowledge">
+          <div class="ct-card-label">
+            <span class="indicator"></span>
+            CT Orchestrator
+          </div>
+          <div class="ct-card-name">Discover creative best practices</div>
+          <div class="ct-card-desc">
+            Chat with your CT rules and past test results. Ask what creative elements drive lift, what works for a category, and what to avoid.
+          </div>
+          <span class="ct-card-tab">Insights tab</span>
+        </div>
+      </div>
+
+      <!-- Ideation -->
+      <div class="stage-wrapper">
+        <div class="stage-card">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Ideation</div>
+          <div class="stage-meta">Human-driven</div>
+        </div>
+        <div class="ct-empty"></div>
+      </div>
+
+      <!-- Concept Development -->
+      <div class="stage-wrapper">
+        <div class="stage-card">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Concept<br>Development</div>
+          <div class="stage-meta">Human-driven</div>
+        </div>
+        <div class="ct-empty"></div>
+      </div>
+
+      <!-- Production ← Creative Scores -->
+      <div class="stage-wrapper">
+        <div class="stage-card active">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Production</div>
+        </div>
+        <div class="ct-card ct-scores">
+          <div class="ct-card-label">
+            <span class="indicator"></span>
+            CT Orchestrator
+          </div>
+          <div class="ct-card-name">Predict creative performance</div>
+          <div class="ct-card-desc">
+            Pre-test video scoring using vision AI. Predicts pass/fail probability, extracts creative features, and scores across five diagnostic dimensions — before the expensive lift study.
+          </div>
+          <span class="ct-card-tab">Creative Scorer tab</span>
+        </div>
+      </div>
+
+      <!-- Evaluate ← In-lab Testing (fed by CT Plan) -->
+      <div class="stage-wrapper">
+        <div class="stage-card active">
+          <div class="stage-dot"></div>
+          <div class="stage-name">Evaluate</div>
+        </div>
+        <div class="ct-card ct-evaluate">
+          <div class="ct-card-label">
+            <span class="indicator"></span>
+            In-Lab Testing
+          </div>
+          <div class="ct-card-name">Creative testing</div>
+          <div class="ct-card-desc">
+            Creatives selected in the CT Plan are sent for in-lab brand lift testing. Results feed back to the Results Agent to inform launch decisions.
+          </div>
+          <span class="ct-card-tab">Fed by CT Plan</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ CROSS-LIFECYCLE FLOW ═══════════ -->
+  <div class="cross-flow">
+    <div class="cross-flow-container">
+      <div class="flow-path">
+        <span class="flow-step highlight-blue">Generate creative test plan</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step highlight-evaluate">In-lab testing (Evaluate)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step highlight-purple">Optimize creatives in flight</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step" style="color: #4ade80;">Discover creative best practices</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step" style="color: #71717a; font-style: italic;">Next brief</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ POSITIONING ═══════════ -->
+  <div class="positioning">
+    <div class="positioning-title">The positioning</div>
+    <p class="positioning-text">
+      CT Orchestrator doesn't replace the creative process — <strong>Strategy, Ideation, and Concept Development remain human-driven.</strong>
+      Instead, it augments the stages where data and AI add the most value:
+      <strong>generating test plans</strong> that feed in-lab evaluation, <strong>predicting creative performance</strong> before the expensive lift study,
+      <strong>optimizing creatives in flight</strong> based on test outcomes, and <strong>discovering best practices</strong> that make every future brief smarter.
+      The full loop connects both lifecycles: plans drive testing, test results drive optimization, and learnings feed the next creative brief.
+    </p>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #3b82f6;"></div> Generate creative test plan
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #a855f7;"></div> Optimize creatives in flight
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #22c55e;"></div> Discover creative best practices
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #f97316;"></div> Predict creative performance
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #e4e4e7;"></div> In-lab testing
+      </div>
+      <div class="legend-item inactive">
+        <div class="legend-dot"></div> Human-driven stages
+      </div>
+    </div>
+  </div>
+
+</div>

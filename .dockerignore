@@ -1,0 +1,51 @@
+# Version control
+.git
+.github
+__MACOSX
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+venv/
+.venv/
+
+# Environment (secrets)
+.env
+.env.local
+
+# Data (mounted as volumes instead)
+data/chroma/
+data/campaigns.db
+data/usage.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Docs / non-runtime
+*.md
+!README.md
+LICENSE
+PRODUCTION_ROADMAP.md
+
+# Tests (not needed in production image)
+tests/
+test_data/
+seed_historical_data.py
+
+# Backups
+backup_of_data/
+*.zip

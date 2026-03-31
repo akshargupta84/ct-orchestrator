@@ -8,7 +8,6 @@ Supports two modes:
 """
 
 import streamlit as st
-import streamlit.components.v1 as components
 from pathlib import Path
 import sys
 import json
@@ -20,6 +19,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Load .env file (from project root)
 load_dotenv(Path(__file__).parent.parent / ".env")
+
+# Initialize structured logging
+try:
+    from services.logger import setup_logging, get_logger, new_request_id
+    setup_logging()
+    logger = get_logger(__name__)
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+    def new_request_id(): return ""
 
 # Page configuration - MUST be first Streamlit command
 st.set_page_config(
@@ -48,14 +57,11 @@ st.markdown("""
     .status-fail { color: #EF4444; font-weight: 600; }
     .stTabs [data-baseweb="tab-list"] { gap: 24px; }
     .stTabs [data-baseweb="tab"] { padding: 10px 20px; }
+    /* Indent hub sub-navigation */
+    .hub-sub-nav { padding-left: 20px; border-left: 2px solid #3f3f46; margin-left: 12px; }
 </style>
 """, unsafe_allow_html=True)
 
-# GOatcounter analytics to track number of visitors
-components.html("""
-<img src="https://akshargupta84.goatcounter.com/count?p=/ct-orchestrator&t=CT+Orchestrator"
-     alt="" style="position:absolute;left:-9999px">
-""", height=0)
 
 # =============================================================================
 # Session State
@@ -63,6 +69,12 @@ components.html("""
 
 def init_session_state():
     """Initialize session state variables."""
+    # Auth state
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    if "user_info" not in st.session_state:
+        st.session_state.user_info = None
+    
     if "campaigns" not in st.session_state:
         st.session_state.campaigns = []
     if "current_campaign" not in st.session_state:
@@ -157,7 +169,7 @@ def _load_from_persistence():
     except ImportError:
         pass
     except Exception as e:
-        print(f"Error loading from persistence: {e}")
+        logger.error(f"Error loading from persistence: {e}", exc_info=True)
 
 
 # =============================================================================
@@ -228,45 +240,71 @@ def main():
     """Main application."""
     init_session_state()
 
+    # Auth gate — show login if not authenticated
+    if not st.session_state.authenticated:
+        show_login_page()
+        return
+
     if DEMO_MODE:
         load_demo_data()
+
+    # Get user info
+    user = st.session_state.user_info
 
     # Sidebar Navigation
     with st.sidebar:
         st.markdown("## 🎬 CT Orchestrator")
+
+        # User info
+        role_badge = "🔑 Admin" if user["role"] == "admin" else "👤 Viewer"
+        st.markdown(f"**{user['display_name']}** · {role_badge}")
+        if st.button("🚪 Logout", width="stretch"):
+            _handle_logout()
 
         if DEMO_MODE:
             st.warning("📺 **Demo Mode** — Pre-scored videos")
 
         st.markdown("---")
 
-        # Build nav options based on mode
-        if DEMO_MODE:
-            nav_options = [
-                "🏠 Home",
-                "🧠 Agent Hub",
-                "📊 Results & Predictions",
-            ]
-        else:
-            nav_options = [
-                "🏠 Home",
-                "🧠 Agent Hub",
-                "🤖 Planning Agent",
-                "📋 CT Planner",
-                "🔮 Creative Scorer",
-                "📊 Results",
-                "💬 Insights",
-                "⚙️ Admin",
-            ]
+        # Home
+        if st.button(
+            "🏠 Home", key="nav_home", width="stretch",
+            type="primary" if st.session_state.nav_page == "🏠 Home" else "secondary"
+        ):
+            st.session_state.nav_page = "🏠 Home"
+            st.rerun()
 
-        for option in nav_options:
+        # Multi-Agent Hub — clickable header + sub-pages
+        if st.button(
+            "🧠 Multi-Agent Hub", key="nav_hub", width="stretch",
+            type="primary" if st.session_state.nav_page == "🧠 Multi-Agent Hub" else "secondary"
+        ):
+            st.session_state.nav_page = "🧠 Multi-Agent Hub"
+            st.rerun()
+
+        hub_pages = [
+            ("　📋 Generate Test Plan", "📋 Generate Test Plan"),
+            ("　📊 Optimize Creatives", "📊 Optimize Creatives"),
+            ("　💡 Best Practices", "💡 Best Practices"),
+            ("　🔮 Score Creatives", "🔮 Score Creatives"),
+        ]
+
+        for label, page_key in hub_pages:
             if st.button(
-                option,
-                key=f"nav_{option}",
-                use_container_width=True,
-                type="primary" if st.session_state.nav_page == option else "secondary"
+                label, key=f"nav_{page_key}", width="stretch",
+                type="primary" if st.session_state.nav_page == page_key else "secondary"
             ):
-                st.session_state.nav_page = option
+                st.session_state.nav_page = page_key
+                st.rerun()
+
+        # Admin (admin only)
+        if user.get("role") == "admin":
+            st.markdown("---")
+            if st.button(
+                "⚙️ Admin", key="nav_admin", width="stretch",
+                type="primary" if st.session_state.nav_page == "⚙️ Admin" else "secondary"
+            ):
+                st.session_state.nav_page = "⚙️ Admin"
                 st.rerun()
 
         st.markdown("---")
@@ -286,6 +324,10 @@ def main():
             else:
                 st.metric("Plans", len(st.session_state.test_plans))
 
+        # Session query count
+        session_queries = _get_session_query_count()
+        st.caption(f"📝 {session_queries} queries this session")
+
         st.markdown("---")
         st.markdown("""
         **🔗 Resources**
@@ -296,23 +338,130 @@ def main():
 
     # Route to pages
     page = st.session_state.nav_page
+    logger.debug(f"Routing to page: {page}", extra={"page": page, "user": user.get("username", "anon")})
 
-    if page == "🏠 Home":
-        show_home()
-    elif page == "🧠 Agent Hub":
-        show_agent_hub()
-    elif page == "🤖 Planning Agent":
-        show_planning_agent()
-    elif page == "📋 CT Planner":
-        show_planner()
-    elif page == "🔮 Creative Scorer":
-        show_creative_scorer()
-    elif page in ("📊 Results", "📊 Results & Predictions"):
-        show_results()
-    elif page == "💬 Insights":
-        show_insights()
-    elif page == "⚙️ Admin":
-        show_admin()
+    try:
+        if page == "🏠 Home":
+            show_home()
+        elif page == "🧠 Multi-Agent Hub":
+            show_agent_hub()
+        elif page == "📋 Generate Test Plan":
+            show_agent_hub()
+        elif page == "📊 Optimize Creatives":
+            show_results()
+        elif page == "💡 Best Practices":
+            show_insights()
+        elif page == "🔮 Score Creatives":
+            show_creative_scorer()
+        elif page == "⚙️ Admin":
+            show_admin()
+    except Exception as e:
+        logger.error(f"Page render failed: {e}", extra={"page": page}, exc_info=True)
+        try:
+            from services.error_handler import user_friendly_error
+            st.error(f"⚠️ {user_friendly_error(e)}")
+        except ImportError:
+            st.error("Something went wrong loading this page. Please try again.")
+
+
+def show_login_page():
+    """Render the login page."""
+    from services.auth import authenticate, get_login_page_config
+
+    config = get_login_page_config()
+
+    # Center the login form
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("")
+        st.markdown(f"# {config['title']}")
+        st.markdown(f"*{config['subtitle']}*")
+
+        st.markdown("---")
+
+        # Demo note
+        st.info(f"🔐 {config['demo_note']}")
+
+        # Login form
+        with st.container(border=True):
+            st.markdown("### Log In")
+            username = st.text_input("Username", placeholder="Enter username")
+            password = st.text_input(
+                "Password",
+                type="password",
+                placeholder=config["hint"],
+            )
+
+            if st.button("Log In", type="primary", width="stretch"):
+                if username and password:
+                    user_info = authenticate(username, password)
+                    if user_info:
+                        st.session_state.authenticated = True
+                        st.session_state.user_info = user_info
+                        _handle_login(user_info)
+                        st.rerun()
+                    else:
+                        st.error("Invalid username or password.")
+                else:
+                    st.warning("Please enter both username and password.")
+
+        # Show available demo accounts
+        st.markdown("**Demo Accounts:**")
+        for u in config["available_users"]:
+            st.caption(f"• `{u['username']}` — {u['role']}")
+        st.caption(f"💡 {config['hint']}")
+
+        st.markdown("---")
+        st.caption("CT Orchestrator v1.0 · [GitHub](https://github.com/akshargupta84/ct-orchestrator)")
+
+
+def _handle_login(user_info: dict):
+    """Handle post-login setup: log event, load chat history."""
+    new_request_id()  # Start a new request context for this session
+    logger.info("User logged in", extra={"user": user_info["username"], "action": "login", "session_id": user_info["session_id"]})
+    try:
+        from services.usage_tracker import get_tracker
+        tracker = get_tracker()
+        tracker.log_login(user_info["session_id"], user_info["username"], user_info["role"])
+
+        # Load persisted chat history for this user
+        saved_messages = tracker.load_chat_history(user_info["username"], page="agent_hub")
+        if saved_messages:
+            st.session_state.hub_chat_messages = saved_messages
+    except Exception as e:
+        logger.warning(f"Usage tracker unavailable: {e}")
+
+
+def _handle_logout():
+    """Handle logout: log event, clear session."""
+    logger.info("User logged out", extra={"user": st.session_state.user_info.get("username", "unknown"), "action": "logout"})
+    try:
+        from services.usage_tracker import get_tracker
+        tracker = get_tracker()
+        if st.session_state.user_info:
+            tracker.log_logout(st.session_state.user_info["session_id"])
+    except Exception:
+        pass
+
+    # Clear auth state
+    st.session_state.authenticated = False
+    st.session_state.user_info = None
+    st.session_state.hub_chat_messages = []
+    st.session_state.demo_query_count = 0
+    st.session_state.nav_page = "🏠 Home"
+    st.rerun()
+
+
+def _get_session_query_count() -> int:
+    """Get query count for the current session."""
+    try:
+        from services.usage_tracker import get_tracker
+        user = st.session_state.user_info
+        if user:
+            return get_tracker().get_session_query_count(user["session_id"])
+    except Exception:
+        pass
+    return 0
 
 
 # =============================================================================
@@ -320,7 +469,7 @@ def main():
 # =============================================================================
 
 def show_home():
-    """Home page with overview."""
+    """Home page with lifecycle visual and overview."""
     st.title("🎬 Creative Testing Orchestrator")
     st.markdown("*AI-powered multi-agent system for automating creative testing workflows in media agencies*")
 
@@ -334,7 +483,7 @@ def show_home():
 
     st.markdown("---")
 
-    # What is this?
+    # What is CT Orchestrator
     st.markdown("## 🎯 What is CT Orchestrator?")
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -342,14 +491,8 @@ def show_home():
         **CT Orchestrator** helps media agencies predict which video ads will perform well 
         in brand lift studies — *before* spending $10K-$25K on actual testing.
         
-        **The Problem:** Brand lift studies cost $10K-$25K each, ~65% of creatives fail, 
-        results take 2-4 weeks, and there's no systematic learning from past tests.
-        
-        **Our Solution:**
-        - 🎥 **Video Analysis**: Extract creative features using local AI vision models
-        - 🤖 **Multi-Agent System**: Specialized agents for planning, analysis, and recommendations
-        - 📊 **Predictive Modeling**: ML models trained on historical results
-        - 💬 **Insights Chat**: Ask questions about your data and past learnings
+        It doesn't replace the creative process — **strategy, ideation, and concept development remain human-driven.**
+        Instead, it augments the stages where data and AI add the most value.
         """)
     with col2:
         st.metric("Potential Annual Savings", "~$150K")
@@ -357,79 +500,52 @@ def show_home():
 
     st.markdown("---")
 
-    # Quick navigation cards
+    # Lifecycle Visual — Where CT Orchestrator Fits
+    st.markdown("## Where CT Orchestrator Fits")
+    st.markdown("Four AI-powered components, each designed for a specific stage of the campaign and creative lifecycle.")
+
+    import streamlit.components.v1 as components
+    lifecycle_path = Path(__file__).parent / "lifecycle_map.html"
+    if lifecycle_path.exists():
+        lifecycle_html = lifecycle_path.read_text()
+        components.html(lifecycle_html, height=1100, scrolling=False)
+    else:
+        st.info("Lifecycle map not found. Place `lifecycle_map.html` in the `frontend/` directory.")
+
+    st.markdown("---")
+
+    # Quick navigation cards aligned to lifecycle
     st.markdown("## 🚀 Get Started")
 
-    if not DEMO_MODE:
-        # Non-demo: show all features
-        col_a, col_b = st.columns(2)
-        with col_a:
-            if st.button("🧠 Try Agent Hub", type="primary", use_container_width=True):
-                st.session_state.nav_page = "🧠 Agent Hub"
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        with st.container(border=True):
+            st.markdown("### 📋 Generate Test Plan")
+            st.markdown("Upload media plan & videos. Auto-match, validate rules, generate plan with cost & timeline.")
+            if st.button("Generate Plan →", key="home_plan", width="stretch"):
+                st.session_state.nav_page = "📋 Generate Test Plan"
                 st.rerun()
-        with col_b:
-            if st.button("🤖 Planning Agent (Single Agent)", use_container_width=True):
-                st.session_state.nav_page = "🤖 Planning Agent"
+    with col2:
+        with st.container(border=True):
+            st.markdown("### 📊 Optimize Creatives")
+            st.markdown("Analyze test outcomes and diagnostics. AI-driven insights on what to run, cut, or revise.")
+            if st.button("View Results →", key="home_results", width="stretch"):
+                st.session_state.nav_page = "📊 Optimize Creatives"
                 st.rerun()
-
-        st.markdown("---")
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1:
-            st.markdown("### 📋 Planner")
-            st.markdown("Form-based testing plans with rule validation.")
-            if st.button("Create Plan", key="home_plan", use_container_width=True):
-                st.session_state.nav_page = "📋 CT Planner"
+    with col3:
+        with st.container(border=True):
+            st.markdown("### 💡 Best Practices")
+            st.markdown("Chat with CT rules and past test results. Discover what creative elements drive lift.")
+            if st.button("Explore →", key="home_insights", width="stretch"):
+                st.session_state.nav_page = "💡 Best Practices"
                 st.rerun()
-        with col2:
-            st.markdown("### 🔮 Scorer")
-            st.markdown("Predict results before testing with local AI.")
-            if st.button("Score Creative", key="home_scorer", use_container_width=True):
-                st.session_state.nav_page = "🔮 Creative Scorer"
+    with col4:
+        with st.container(border=True):
+            st.markdown("### 🔮 Score Creatives")
+            st.markdown("Pre-test video scoring using vision AI. Predict pass/fail before the expensive lift study.")
+            if st.button("Score Video →", key="home_scorer", width="stretch"):
+                st.session_state.nav_page = "🔮 Score Creatives"
                 st.rerun()
-        with col3:
-            st.markdown("### 📊 Results")
-            st.markdown("Analyze performance and get recommendations.")
-            if st.button("View Results", key="home_results", use_container_width=True):
-                st.session_state.nav_page = "📊 Results"
-                st.rerun()
-        with col4:
-            st.markdown("### 💬 Insights")
-            st.markdown("Ask questions about data and learnings.")
-            if st.button("Ask Question", key="home_insights", use_container_width=True):
-                st.session_state.nav_page = "💬 Insights"
-                st.rerun()
-        with col5:
-            st.markdown("### ⚙️ Admin")
-            st.markdown("Configure rules, API keys, and settings.")
-            if st.button("Settings", key="home_admin", use_container_width=True):
-                st.session_state.nav_page = "⚙️ Admin"
-                st.rerun()
-
-    else:
-        # Demo: streamlined navigation
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            with st.container(border=True):
-                st.markdown("### 1️⃣ Agent Hub")
-                st.markdown("Chat with AI agents, upload videos & media plans, generate test plans.")
-                if st.button("Go to Agent Hub →", key="goto_hub"):
-                    st.session_state.nav_page = "🧠 Agent Hub"
-                    st.rerun()
-        with col2:
-            with st.container(border=True):
-                st.markdown("### 2️⃣ Results & Predictions")
-                st.markdown("Explore video predictions, diagnostic scores, and recommendations.")
-                if st.button("Go to Results →", key="goto_results"):
-                    st.session_state.nav_page = "📊 Results & Predictions"
-                    st.rerun()
-        with col3:
-            with st.container(border=True):
-                st.markdown("### 3️⃣ Chat with Agents")
-                st.markdown("Ask about brand recall drivers, budget rules, and creative best practices.")
-                st.caption("*5 free queries in demo*")
-                if st.button("Try Chat →", key="goto_chat"):
-                    st.session_state.nav_page = "🧠 Agent Hub"
-                    st.rerun()
 
     # Sample videos (demo only)
     if DEMO_MODE:
@@ -447,35 +563,10 @@ def show_home():
                     else:
                         st.error(f"{video['prediction']} ({video['confidence']})")
                     st.caption(video['key_features'])
-                    if st.button("View Details", key=f"view_{video['id']}", use_container_width=True):
+                    if st.button("View Details", key=f"view_{video['id']}", width="stretch"):
                         st.session_state.selected_video = video['id']
-                        st.session_state.nav_page = "📊 Results & Predictions"
+                        st.session_state.nav_page = "📊 Optimize Creatives"
                         st.rerun()
-
-    # Architecture
-    st.markdown("---")
-    st.markdown("## 🏗️ Architecture Overview")
-    st.code("""
-┌─────────────────────────────────────────────────────────────────┐
-│                     FRONTEND (Streamlit)                        │
-│   Home │ Agent Hub │ Planner │ Scorer │ Results │ Insights     │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  ORCHESTRATION LAYER (LangGraph)                │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
-│  │ Planning │  │ Analysis │  │  Video   │  │Knowledge │       │
-│  │  Agent   │  │  Agent   │  │ Analyzer │  │  Agent   │       │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘       │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        DATA LAYER                               │
-│   SQLite │ ChromaDB (RAG) │ Video Files │ Pre-scored Cache     │
-└─────────────────────────────────────────────────────────────────┘
-    """, language="text")
 
     # Run locally (demo only)
     if DEMO_MODE:
@@ -503,6 +594,8 @@ cp .env.example .env
 # Run the app
 streamlit run frontend/app.py
             """, language="bash")
+
+
 
 
 # =============================================================================
@@ -619,12 +712,17 @@ def _show_demo_agent_hub():
     user_query = st.chat_input(placeholder, disabled=chat_disabled)
 
     if user_query:
+        new_request_id()  # New request context per query
+        user = st.session_state.user_info
+        logger.info("Chat query received", extra={"user": user.get("username", "anon"), "action": "agent_hub_query", "query": user_query[:100]})
         st.session_state.hub_chat_messages.append({"role": "user", "content": user_query})
         if DEMO_MODE:
             st.session_state.demo_query_count += 1
         upload_context = _build_upload_context()
         response = _generate_demo_response(user_query, upload_context)
         st.session_state.hub_chat_messages.append({"role": "assistant", "content": response})
+        _track_chat_exchange(user_query, response)
+        logger.info("Chat response generated", extra={"user": user.get("username", "anon"), "action": "response_sent"})
         st.rerun()
 
     # Quick action buttons (only before first message)
@@ -633,19 +731,20 @@ def _show_demo_agent_hub():
         st.markdown("### 🎮 Try These")
         qc1, qc2, qc3 = st.columns(3)
         with qc1:
-            if st.button("🎬 Analyze Summer_Hero_30s", use_container_width=True, key="qa_video"):
+            if st.button("🎬 Analyze Summer_Hero_30s", width="stretch", key="qa_video"):
                 _send_quick_query("Analyze the Summer_Hero_30s video")
         with qc2:
-            if st.button("❓ What drives brand recall?", use_container_width=True, key="qa_recall"):
+            if st.button("❓ What drives brand recall?", width="stretch", key="qa_recall"):
                 _send_quick_query("What drives brand recall?")
         with qc3:
-            if st.button("📋 Show budget rules", use_container_width=True, key="qa_budget"):
+            if st.button("📋 Show budget rules", width="stretch", key="qa_budget"):
                 _send_quick_query("What are the budget tier rules?")
 
     # Clear chat
     if st.session_state.hub_chat_messages:
         st.markdown("---")
         if st.button("🗑️ Clear Chat", key="clear_hub_chat"):
+            _clear_tracked_chat()
             st.session_state.hub_chat_messages = []
             st.rerun()
 
@@ -662,7 +761,43 @@ def _send_quick_query(query: str):
     upload_context = _build_upload_context()
     response = _generate_demo_response(query, upload_context)
     st.session_state.hub_chat_messages.append({"role": "assistant", "content": response})
+    _track_chat_exchange(query, response)
     st.rerun()
+
+
+def _track_chat_exchange(query: str, response: str):
+    """Log a query and persist chat messages for the current user."""
+    try:
+        from services.usage_tracker import get_tracker
+        user = st.session_state.user_info
+        if not user:
+            return
+        tracker = get_tracker()
+        # Log the query action
+        tracker.log_query(
+            session_id=user["session_id"],
+            username=user["username"],
+            action="agent_hub_query",
+            query=query,
+            response_preview=response[:200],
+            page="agent_hub",
+        )
+        # Persist chat messages
+        tracker.save_chat_message(user["username"], "user", query)
+        tracker.save_chat_message(user["username"], "assistant", response)
+    except Exception as e:
+        logger.warning(f"Tracking error: {e}")
+
+
+def _clear_tracked_chat():
+    """Clear persisted chat history for the current user."""
+    try:
+        from services.usage_tracker import get_tracker
+        user = st.session_state.user_info
+        if user:
+            get_tracker().clear_chat_history(user["username"])
+    except Exception:
+        pass
 
 
 def _build_upload_context() -> dict:
@@ -713,6 +848,27 @@ def _try_api_response(query: str, upload_context: dict):
         from anthropic import Anthropic
     except ImportError:
         return None
+    
+    # --- Cache check ---
+    try:
+        from services.cache import get_cache, hash_upload_context, select_model, get_cost_tracker
+        cache = get_cache()
+        cost_tracker = get_cost_tracker()
+        ctx_hash = hash_upload_context(upload_context)
+        
+        # Only cache if this is the first message or a standalone query (not a follow-up)
+        is_first_or_short_history = len(st.session_state.hub_chat_messages) <= 2
+        if is_first_or_short_history:
+            cached = cache.get(query, ctx_hash)
+            if cached:
+                logger.info("Cache hit — returning cached response", extra={"action": "cache_hit", "query": query[:50]})
+                cost_tracker.record_cache_hit(500)  # Estimate
+                return cached
+    except ImportError:
+        cache = None
+        cost_tracker = None
+        ctx_hash = ""
+        select_model = None
     
     # Build conversation history for context
     history_messages = []
@@ -802,18 +958,42 @@ Expedited testing: +50% cost, -3 business days.
 - When asked to generate test plans, use the budget tier rules and uploaded file context"""
 
     try:
-        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+        # --- Model routing: Haiku for simple queries, Sonnet for complex ---
+        if select_model:
+            model = select_model(query)
+        else:
+            model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+        
         client = Anthropic(api_key=api_key)
+        logger.info("Calling Anthropic API", extra={"action": "api_call", "agent": "demo_hub"})
         response = client.messages.create(
             model=model,
             max_tokens=1024,
             system=system_prompt,
             messages=history_messages,
         )
-        return response.content[0].text
+        input_tokens = getattr(response.usage, 'input_tokens', 0)
+        output_tokens = getattr(response.usage, 'output_tokens', 0)
+        total_tokens = input_tokens + output_tokens
+        logger.info("API response received", extra={"action": "api_response", "tokens": total_tokens})
+        
+        response_text = response.content[0].text
+        
+        # --- Store in cache and track cost ---
+        if cache:
+            cache.put(query, ctx_hash, response_text, tokens_used=total_tokens)
+        if cost_tracker:
+            cost_tracker.record_call(input_tokens, output_tokens, model=model)
+        
+        return response_text
     except Exception as e:
         # API call failed — fall back to keyword matching
-        print(f"API call failed: {e}")
+        logger.warning(f"API call failed: {e}", extra={"error_type": type(e).__name__})
+        try:
+            from services.error_handler import user_friendly_error
+            logger.info(f"User-friendly error: {user_friendly_error(e)}")
+        except ImportError:
+            pass
         return None
 
 
@@ -1001,7 +1181,7 @@ def show_planning_agent():
                 "which are not yet built. Use the **Agent Hub** for chat-based planning in the meantime."
             )
             if st.button("Go to Agent Hub →"):
-                st.session_state.nav_page = "🧠 Agent Hub"
+                st.session_state.nav_page = "📋 Generate Test Plan"
                 st.rerun()
 
 
@@ -1037,7 +1217,7 @@ def show_creative_scorer():
                 "Use the **Agent Hub** to analyze pre-scored videos in the meantime."
             )
             if st.button("Go to Agent Hub →", key="scorer_to_hub"):
-                st.session_state.nav_page = "🧠 Agent Hub"
+                st.session_state.nav_page = "📋 Generate Test Plan"
                 st.rerun()
 
 
