@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy and install Python dependencies
 COPY requirements.txt requirements-local.txt ./
-RUN pip install --no-cache-dir --prefix=/install -r requirements-local.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
 # Stage 2: Production image
@@ -26,8 +26,8 @@ LABEL maintainer="Akshar Gupta"
 LABEL description="CT Orchestrator — AI-powered creative testing for media agencies"
 LABEL version="1.0"
 
-# Create non-root user for security
-RUN groupadd -r ctapp && useradd -r -g ctapp -m ctapp
+# HF Spaces requires user with UID 1000
+RUN useradd -m -u 1000 user
 
 WORKDIR /app
 
@@ -59,13 +59,14 @@ RUN mkdir -p /app/data/plans/draft \
              /app/data/results/analyzed \
              /app/data/chat_history \
              /app/data/chroma \
-    && chown -R ctapp:ctapp /app
+             /app/data/logs \
+    && chown -R user:user /app
 
-# Streamlit config — disable telemetry, set port
-RUN mkdir -p /home/ctapp/.streamlit && chown -R ctapp:ctapp /home/ctapp
-COPY <<EOF /home/ctapp/.streamlit/config.toml
+# Streamlit config — disable telemetry, set port for HF (7860)
+RUN mkdir -p /home/user/.streamlit && chown -R user:user /home/user
+COPY <<EOF /home/user/.streamlit/config.toml
 [server]
-port = 8501
+port = 7860
 address = "0.0.0.0"
 headless = true
 enableCORS = false
@@ -80,18 +81,18 @@ EOF
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+    CMD curl -f http://localhost:7860/_stcore/health || exit 1
 
 # Switch to non-root user
-USER ctapp
+USER user
 
-# Expose Streamlit port
-EXPOSE 8501
+# Expose HF Spaces required port
+EXPOSE 7860
 
 # Default environment
-ENV DEMO_MODE=false
+ENV DEMO_MODE=true
 ENV PYTHONPATH=/app
 ENV STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
 
 # Entry point
-CMD ["streamlit", "run", "frontend/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "frontend/app.py", "--server.port=7860", "--server.address=0.0.0.0"]
