@@ -3,9 +3,7 @@ title: CT Orchestrator
 emoji: 🎬
 colorFrom: blue
 colorTo: purple
-sdk: streamlit
-sdk_version: 1.30.0
-app_file: frontend/app.py
+sdk: docker
 pinned: false
 license: apache-2.0
 short_description: AI-powered creative testing for video ads
