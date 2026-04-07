@@ -62,6 +62,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Analytics (GoatCounter — pixel method for Streamlit iframe compatibility)
+import streamlit.components.v1 as components
+components.html("""
+<img src="https://akshargupta84.goatcounter.com/count?p=/ct-orchestrator&t=CT+Orchestrator"
+     alt="" style="position:absolute;left:-9999px">
+""", height=0)
 
 # =============================================================================
 # Session State
