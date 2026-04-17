@@ -187,11 +187,18 @@ class MultiAgentSystem:
             state['agent_responses'][agent_name] = response.to_dict()
             state['token_usage'][agent_name] = response.tokens_used
             state['total_tokens_this_turn'] += response.tokens_used
-            
+
+            # base_agent.run() catches its own exceptions and returns a response
+            # with empty content + error set. Surface that into agent_errors so
+            # synthesis sees the failure instead of treating empty content as
+            # a valid answer.
+            if response.error:
+                state['agent_errors'][agent_name] = response.error
+
             # Handle inter-agent requests
             for request in response.requests_made:
                 self.orchestrator._handle_inter_agent_request(request, state)
-                
+
         except Exception as e:
             state['agent_errors'][agent_name] = str(e)
             add_reasoning_step(state, agent_name, "error", str(e))
@@ -212,18 +219,60 @@ class MultiAgentSystem:
     
     def _synthesize_node(self, state: AgentState) -> AgentState:
         """Synthesize final response."""
-        final_response = self.orchestrator._synthesize_response(state)
+        import logging
+        log = logging.getLogger(__name__)
+
+        try:
+            final_response = self.orchestrator._synthesize_response(state)
+        except Exception as e:
+            log.exception("Synthesize failed")
+            final_response = ""
+            state['agent_errors']['orchestrator'] = f"Synthesis failed: {e}"
+
+        # Diagnostic: log what came out of the graph so empty/blank responses
+        # aren't invisible to operators running `streamlit run` in a terminal.
+        selected = state.get('selected_agents', [])
+        responses = state.get('agent_responses', {})
+        errors = state.get('agent_errors', {})
+        log.info(
+            "Synthesis outcome: selected=%s responses=%s errors=%s final_response_len=%s",
+            selected, list(responses.keys()), list(errors.keys()), len(final_response or ""),
+        )
+
+        # Fallback: if synthesis produced nothing usable, surface whatever
+        # agent errors or reasoning exist so the user sees *something* in the
+        # chat bubble instead of a silent blank message.
+        if not final_response or not final_response.strip():
+            parts = ["⚠️ The agents didn't produce a response."]
+            if errors:
+                parts.append("\n**Agent errors:**")
+                for agent_name, err in errors.items():
+                    parts.append(f"- `{agent_name}`: {err}")
+            if selected and not responses and not errors:
+                parts.append(
+                    f"\nSelected agents ({', '.join(selected)}) returned nothing. "
+                    "This usually means the underlying LLM call returned an empty "
+                    "response — check your `ANTHROPIC_API_KEY`, model ID, and quota."
+                )
+            if not selected and not responses and not errors:
+                parts.append(
+                    "\nThe orchestrator handled this as a general query but the "
+                    "LLM returned an empty completion. Check the terminal for tracebacks "
+                    "and verify `ANTHROPIC_API_KEY` / model ID in `utils/llm.py`."
+                )
+            final_response = "\n".join(parts)
+
         state['final_response'] = final_response
-        
+
         # Add to conversation history
         add_message(state, 'assistant', final_response, 'orchestrator')
-        
+
         # Track orchestrator tokens
         state['token_usage']['orchestrator'] = len(final_response) // 4
         state['total_tokens_this_turn'] += state['token_usage']['orchestrator']
-        
+
         add_reasoning_step(state, "orchestrator", "responding", "Synthesized final response")
-        
+
         return state
     
     def process(self, state: AgentState) -> AgentState:

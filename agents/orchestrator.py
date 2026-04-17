@@ -123,26 +123,69 @@ class Orchestrator:
                     state['agent_responses'][agent_name] = response.to_dict()
                     state['token_usage'][agent_name] = response.tokens_used
                     state['total_tokens_this_turn'] += response.tokens_used
-                    
+
+                    # Surface agent-internal errors (base_agent.run() catches
+                    # exceptions and returns empty content + error field).
+                    if response.error:
+                        state['agent_errors'][agent_name] = response.error
+
                     # Handle inter-agent requests
                     for request in response.requests_made:
                         self._handle_inter_agent_request(request, state)
-                        
+
                 except Exception as e:
                     state['agent_errors'][agent_name] = str(e)
                     add_reasoning_step(state, agent_name, "error", f"Failed: {str(e)}")
         
         # Step 4: Synthesize final response
-        final_response = self._synthesize_response(state)
+        import logging
+        log = logging.getLogger(__name__)
+        try:
+            final_response = self._synthesize_response(state)
+        except Exception as e:
+            log.exception("Synthesize failed")
+            final_response = ""
+            state['agent_errors']['orchestrator'] = f"Synthesis failed: {e}"
+
+        log.info(
+            "Synthesis outcome: selected=%s responses=%s errors=%s final_response_len=%s",
+            state.get('selected_agents', []),
+            list(state.get('agent_responses', {}).keys()),
+            list(state.get('agent_errors', {}).keys()),
+            len(final_response or ""),
+        )
+
+        # Fallback so the assistant bubble is never a silent blank when every
+        # agent errored or the LLM returned empty.
+        if not final_response or not final_response.strip():
+            errors = state.get('agent_errors', {})
+            selected = state.get('selected_agents', [])
+            parts = ["⚠️ The agents didn't produce a response."]
+            if errors:
+                parts.append("\n**Agent errors:**")
+                for agent_name, err in errors.items():
+                    parts.append(f"- `{agent_name}`: {err}")
+            if selected and not state.get('agent_responses') and not errors:
+                parts.append(
+                    f"\nSelected agents ({', '.join(selected)}) returned nothing. "
+                    "Check `ANTHROPIC_API_KEY`, the model ID in `utils/llm.py`, and quota."
+                )
+            if not selected and not state.get('agent_responses') and not errors:
+                parts.append(
+                    "\nThe orchestrator handled this as a general query but the LLM "
+                    "returned an empty completion. Check the terminal for tracebacks."
+                )
+            final_response = "\n".join(parts)
+
         state['final_response'] = final_response
-        
+
         # Add to conversation history
         add_message(state, 'assistant', final_response, self.name)
-        
+
         # Track orchestrator tokens
         state['token_usage'][self.name] = self._estimate_tokens(final_response)
         state['total_tokens_this_turn'] += state['token_usage'][self.name]
-        
+
         return state
     
     def _classify_query(self, query: str, state: AgentState) -> str:

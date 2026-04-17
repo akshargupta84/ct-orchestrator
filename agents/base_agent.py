@@ -102,6 +102,14 @@ class BaseAgent(ABC):
             )
             
         except Exception as e:
+            # Log with full traceback so operators can see the real cause in the
+            # terminal (e.g., invalid model ID, auth error, quota). Without this,
+            # the exception is invisible because we return an empty content
+            # response rather than raising.
+            import logging
+            logging.getLogger(__name__).exception(
+                "Agent %r failed during run()", self.name
+            )
             add_reasoning_step(state, self.name, "error", str(e))
             return AgentResponse(
                 agent_name=self.name,

@@ -17,8 +17,10 @@ from dotenv import load_dotenv
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Load .env file (from project root)
-load_dotenv(Path(__file__).parent.parent / ".env")
+# Load .env file (from project root). override=True makes .env authoritative
+# over any stale values already set in the shell environment — avoids silent
+# auth failures when a placeholder like `your-key-here` lingers in the shell.
+load_dotenv(Path(__file__).parent.parent / ".env", override=True)
 
 # Initialize structured logging
 try:
@@ -506,10 +508,7 @@ def show_home():
 
     st.markdown("---")
 
-    # Lifecycle Visual — Where CT Orchestrator Fits
-    st.markdown("## Where CT Orchestrator Fits")
-    st.markdown("Four AI-powered components, each designed for a specific stage of the campaign and creative lifecycle.")
-
+    # Lifecycle Visual — heading + description live inside lifecycle_map.html
     import streamlit.components.v1 as components
     lifecycle_path = Path(__file__).parent / "lifecycle_map.html"
     if lifecycle_path.exists():
@@ -522,6 +521,24 @@ def show_home():
 
     # Quick navigation cards aligned to lifecycle
     st.markdown("## 🚀 Get Started")
+
+    # Primary entry point — recommended for most users
+    with st.container(border=True):
+        hero_col, cta_col = st.columns([3, 1], vertical_alignment="center")
+        with hero_col:
+            st.markdown("### 🧠 Start with the Multi-Agent Hub &nbsp; _(recommended)_")
+            st.markdown(
+                "**New here? Start here.** Chat with all of our AI agents in one place — "
+                "analyze creatives, generate test plans, and explore best practices "
+                "without jumping between tools. The fastest way to see what CT Orchestrator can do."
+            )
+        with cta_col:
+            if st.button("Launch Hub →", key="home_hub_hero", width="stretch", type="primary"):
+                st.session_state.nav_page = "🧠 Multi-Agent Hub"
+                st.rerun()
+
+    st.markdown("")  # breathing room
+    st.caption("Prefer to jump straight into a specific tool? Pick one below.")
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -724,8 +741,19 @@ def _show_demo_agent_hub():
         st.session_state.hub_chat_messages.append({"role": "user", "content": user_query})
         if DEMO_MODE:
             st.session_state.demo_query_count += 1
-        upload_context = _build_upload_context()
-        response = _generate_demo_response(user_query, upload_context)
+
+        # Inline-render the new exchange so the user sees acknowledgement + a
+        # thinking indicator while the response is being generated. The next
+        # rerun re-renders everything cleanly from hub_chat_messages.
+        with chat_container:
+            with st.chat_message("user"):
+                st.markdown(user_query)
+            with st.chat_message("assistant", avatar="🧠"):
+                with st.spinner("🧠 Agents are thinking…"):
+                    upload_context = _build_upload_context()
+                    response = _generate_demo_response(user_query, upload_context)
+                st.markdown(response)
+
         st.session_state.hub_chat_messages.append({"role": "assistant", "content": response})
         _track_chat_exchange(user_query, response)
         logger.info("Chat response generated", extra={"user": user.get("username", "anon"), "action": "response_sent"})
@@ -764,8 +792,11 @@ def _send_quick_query(query: str):
     st.session_state.hub_chat_messages.append({"role": "user", "content": query})
     if DEMO_MODE:
         st.session_state.demo_query_count += 1
-    upload_context = _build_upload_context()
-    response = _generate_demo_response(query, upload_context)
+    # Show a spinner while the response is generated so the click registers
+    # visually even though the quick-action button sits below the chat area.
+    with st.spinner("🧠 Agents are thinking…"):
+        upload_context = _build_upload_context()
+        response = _generate_demo_response(query, upload_context)
     st.session_state.hub_chat_messages.append({"role": "assistant", "content": response})
     _track_chat_exchange(query, response)
     st.rerun()

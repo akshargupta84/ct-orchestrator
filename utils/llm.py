@@ -9,10 +9,12 @@ import json
 from typing import Optional, Any
 from pathlib import Path
 
-# Load .env from project root
+# Load .env from project root. override=True ensures values in .env always win
+# over stale shell env vars (e.g., a placeholder ANTHROPIC_API_KEY left over
+# from an earlier `source .env.example` or a shell rc file).
 try:
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).parent.parent / ".env")
+    load_dotenv(Path(__file__).parent.parent / ".env", override=True)
 except ImportError:
     pass  # python-dotenv not installed (e.g., on HF Spaces)
 

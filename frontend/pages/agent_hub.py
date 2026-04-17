@@ -115,7 +115,28 @@ def render_agent_hub():
 
 def _render_main_content(state: AgentState, system: MultiAgentSystem):
     """Render the main chat and file upload area."""
-    
+
+    # Agent architecture (collapsed) — kept in sync with the demo-mode hub so
+    # users get the same at-a-glance orientation regardless of which mode they
+    # land in.
+    with st.expander("🏗️ Agent Architecture", expanded=False):
+        st.code("""
+┌───────────────────────────────────────────────────────────────────────┐
+│                      ORCHESTRATOR (LangGraph)                         │
+│                 Routes requests to appropriate agents                  │
+└───────────────────────────────────────────────────────────────────────┘
+      │                    │                    │                    │
+      ▼                    ▼                    ▼                    ▼
+┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐
+│  PLANNING  │    │  ANALYSIS  │    │   VIDEO    │    │ KNOWLEDGE  │
+│   AGENT    │    │   AGENT    │    │  ANALYZER  │    │   AGENT    │
+│            │    │            │    │            │    │            │
+│ • Rules    │    │ • Pass/Fail│    │ • Frames   │    │ • RAG      │
+│ • Budget   │    │ • Scores   │    │ • LLaVA    │    │ • Q&A      │
+│ • Costs    │    │ • Recs     │    │ • Features │    │ • Learnings│
+└────────────┘    └────────────┘    └────────────┘    └────────────┘
+        """, language="text")
+
     # File upload section (collapsible after first upload)
     has_files = state.get('media_plan_info') or state.get('videos')
     
@@ -156,29 +177,50 @@ def _render_main_content(state: AgentState, system: MultiAgentSystem):
     if query:
         _handle_query(state, system, query)
         st.rerun()
-    
-    # Quick action buttons
+
+    # Starter suggestions — shown before any chat history exists so first-time
+    # users have something clickable to try. Matches the "Try These" pattern
+    # from the demo-mode hub for consistency.
+    if not state.get('messages'):
+        st.markdown("---")
+        st.markdown("### 🎮 Try These")
+
+        try_col1, try_col2, try_col3 = st.columns(3)
+        with try_col1:
+            if st.button("❓ What drives brand recall?", use_container_width=True, key="try_recall"):
+                _handle_query(state, system, "What drives brand recall in video ads?")
+                st.rerun()
+        with try_col2:
+            if st.button("📋 Show budget rules", use_container_width=True, key="try_budget"):
+                _handle_query(state, system, "What are the budget tier rules?")
+                st.rerun()
+        with try_col3:
+            if st.button("📈 Patterns from past tests", use_container_width=True, key="try_patterns"):
+                _handle_query(state, system, "What patterns from historical tests predict creative success?")
+                st.rerun()
+
+    # Quick action buttons — contextual, shown once files are loaded
     if state.get('videos') or state.get('media_plan_info'):
         st.markdown("---")
         st.markdown("**Quick Actions:**")
-        
+
         col1, col2, col3, col4 = st.columns(4)
-        
+
         with col1:
             if st.button("📊 Analyze Videos", use_container_width=True):
                 _handle_query(state, system, "Analyze my uploaded videos and explain their scores")
                 st.rerun()
-        
+
         with col2:
             if st.button("📋 Create Test Plan", use_container_width=True):
                 _handle_query(state, system, "Create a test plan based on my budget and videos")
                 st.rerun()
-        
+
         with col3:
             if st.button("📈 Show Patterns", use_container_width=True):
                 _handle_query(state, system, "What patterns from historical data apply to my creatives?")
                 st.rerun()
-        
+
         with col4:
             if st.button("💡 Get Recommendations", use_container_width=True):
                 _handle_query(state, system, "What do you recommend I do with these creatives?")
@@ -362,22 +404,52 @@ def _process_files(state: AgentState, media_plan_file, video_files):
 
 def _handle_query(state: AgentState, system: MultiAgentSystem, query: str):
     """Handle a user query."""
-    
+
     # Add user message
     add_message(state, 'user', query)
     state['current_query'] = query
-    
-    # Process through multi-agent system
-    with st.spinner("🧠 Agents are thinking..."):
-        try:
-            updated_state = system.process(state)
-            
-            # Update session state
-            st.session_state.agent_hub_state = updated_state
-            
-        except Exception as e:
-            add_message(state, 'assistant', f"I encountered an error: {str(e)}")
-            st.session_state.agent_hub_state = state
+
+    # Track how many messages existed before processing so we can identify
+    # exactly what the agents appended and render it inline.
+    messages_before = len(state.get('messages', []))
+
+    # Inline-render the user message and a thinking indicator so the query is
+    # visibly acknowledged while the agents are working. _render_conversation
+    # already painted the prior history above this point, so the new pair only
+    # needs to appear here; the rerun in the caller will repaint cleanly from
+    # state on the next pass.
+    with st.chat_message("user"):
+        st.markdown(query)
+
+    with st.chat_message("assistant", avatar="🧠"):
+        response_slot = st.empty()
+        with response_slot.container():
+            with st.spinner("🧠 Agents are thinking…"):
+                try:
+                    updated_state = system.process(state)
+                    st.session_state.agent_hub_state = updated_state
+                except Exception as e:
+                    add_message(state, 'assistant', f"I encountered an error: {str(e)}")
+                    st.session_state.agent_hub_state = state
+
+        # Replace the spinner with the actual assistant reply so the user can
+        # see the response (or error) immediately, without waiting for the
+        # rerun to redraw from state.
+        final_state = st.session_state.agent_hub_state or state
+        new_messages = final_state.get('messages', [])[messages_before:]
+        assistant_reply = next(
+            (m.get('content', '') for m in reversed(new_messages)
+             if m.get('role') == 'assistant'),
+            None,
+        )
+        if assistant_reply:
+            response_slot.markdown(assistant_reply)
+        else:
+            response_slot.warning(
+                "The agents didn't return a response. "
+                "Check the terminal for errors (e.g., missing ANTHROPIC_API_KEY, "
+                "Ollama not running, or import failures)."
+            )
 
 
 def render():
