@@ -354,7 +354,7 @@ def main():
         elif page == "🧠 Multi-Agent Hub":
             show_agent_hub()
         elif page == "📋 Generate Test Plan":
-            show_agent_hub()
+            show_generate_test_plan()
         elif page == "📊 Optimize Creatives":
             show_results()
         elif page == "💡 Best Practices":
@@ -484,7 +484,8 @@ def show_home():
     if DEMO_MODE:
         st.info(
             "**🎯 You're viewing the interactive demo** — "
-            "Pre-scored sample videos let you explore all features instantly. "
+            "4 pre-scored sample videos are loaded so you can explore every feature instantly: "
+            "**Summer_Hero_30s**, **Brand_Story_15s**, **Product_Focus_30s**, and **Lifestyle_60s**. "
             "For live scoring with your own creatives, "
             "[clone the repo](https://github.com/akshargupta84/ct-orchestrator) and run locally with Ollama."
         )
@@ -1200,6 +1201,140 @@ def _generate_demo_test_plan(upload_context: dict) -> str:
 # Page Routing (non-demo pages delegate to real implementations)
 # =============================================================================
 
+def show_generate_test_plan():
+    """Dedicated Generate Test Plan page — focused upload + generate UI.
+
+    Demo mode: self-contained form. Uploads a media plan + videos, clicks a
+    single Generate button, and renders a formatted plan inline. No chat noise.
+    Local mode: delegates to the full pages/ct_planner.py (render_planner)
+    which walks through upload → match → select → approve.
+    """
+    if not DEMO_MODE:
+        try:
+            from pages.ct_planner import render_planner
+            render_planner()
+            return
+        except ImportError:
+            try:
+                from frontend.pages.ct_planner import render_planner
+                render_planner()
+                return
+            except ImportError:
+                pass  # fall through to demo UI as a safety net
+
+    # Demo-mode focused UI
+    st.markdown("# 📋 Generate Test Plan")
+    st.markdown(
+        "Upload a media plan and your video creatives, then generate a creative testing plan "
+        "with recommended budget tier, prioritization, estimated cost, and timeline."
+    )
+    st.caption(
+        "Demo mode: plan generation is deterministic and uses the sample budget-tier rules. "
+        "For live ML-driven prioritization, run locally with `DEMO_MODE=false`."
+    )
+
+    # Dedicated session state so uploads here don't collide with the Hub
+    if "plan_uploaded_media_plan" not in st.session_state:
+        st.session_state.plan_uploaded_media_plan = None
+    if "plan_uploaded_videos" not in st.session_state:
+        st.session_state.plan_uploaded_videos = []
+    if "plan_generated_output" not in st.session_state:
+        st.session_state.plan_generated_output = None
+
+    st.markdown("---")
+
+    # ── Step 1: Upload ────────────────────────────────────────────────────
+    st.markdown("### 1. Upload your files")
+    up_col1, up_col2 = st.columns(2)
+    with up_col1:
+        st.markdown("**📊 Media Plan**")
+        uploaded_plan = st.file_uploader(
+            "Media plan (CSV or Excel)", type=["csv", "xlsx", "xls"],
+            key="plan_media_plan_uploader",
+            help="Your campaign media plan — used to determine budget tier and line-item structure."
+        )
+        if uploaded_plan:
+            st.session_state.plan_uploaded_media_plan = uploaded_plan
+            st.success(f"✅ {uploaded_plan.name} ready")
+    with up_col2:
+        st.markdown("**🎥 Video Creatives**")
+        uploaded_videos = st.file_uploader(
+            "Video files", type=["mp4", "mov", "avi"],
+            accept_multiple_files=True, key="plan_videos_uploader",
+            help="The creatives you plan to test. In demo mode, file metadata is used; the actual videos aren't scored."
+        )
+        if uploaded_videos:
+            st.session_state.plan_uploaded_videos = uploaded_videos
+            st.success(f"✅ {len(uploaded_videos)} video(s) ready")
+
+    st.markdown("---")
+
+    # ── Step 2: Generate ──────────────────────────────────────────────────
+    st.markdown("### 2. Generate the plan")
+    has_any_upload = bool(
+        st.session_state.plan_uploaded_media_plan
+        or st.session_state.plan_uploaded_videos
+    )
+    gen_col, reset_col = st.columns([3, 1])
+    with gen_col:
+        generate_clicked = st.button(
+            "🚀 Generate Test Plan",
+            type="primary",
+            width="stretch",
+            disabled=not has_any_upload,
+            help="Upload at least a media plan or one video to enable.",
+        )
+    with reset_col:
+        if st.button("Clear", width="stretch"):
+            st.session_state.plan_uploaded_media_plan = None
+            st.session_state.plan_uploaded_videos = []
+            st.session_state.plan_generated_output = None
+            st.rerun()
+
+    if not has_any_upload:
+        st.info("👆 Upload a media plan or at least one video above to enable plan generation.")
+
+    if generate_clicked and has_any_upload:
+        with st.spinner("🧠 Planning Agent is building your test plan…"):
+            # Build the same upload_context shape the Hub uses, but from our
+            # dedicated session-state keys. Reuses _generate_demo_test_plan.
+            ctx = {"videos": [], "media_plan": None}
+            for v in st.session_state.plan_uploaded_videos:
+                ctx["videos"].append({"name": v.name, "size_kb": v.size / 1024})
+            if st.session_state.plan_uploaded_media_plan:
+                try:
+                    import pandas as pd
+                    f = st.session_state.plan_uploaded_media_plan
+                    if f.name.endswith(".csv"):
+                        df = pd.read_csv(f)
+                    else:
+                        df = pd.read_excel(f)
+                    f.seek(0)
+                    ctx["media_plan"] = {
+                        "filename": f.name,
+                        "columns": list(df.columns),
+                        "rows": len(df),
+                        "preview": df.head(5).to_dict(orient="records"),
+                    }
+                except Exception as e:
+                    ctx["media_plan"] = {
+                        "filename": st.session_state.plan_uploaded_media_plan.name,
+                        "error": str(e),
+                    }
+            st.session_state.plan_generated_output = _generate_demo_test_plan(ctx)
+
+    # ── Step 3: Output ────────────────────────────────────────────────────
+    if st.session_state.plan_generated_output:
+        st.markdown("---")
+        st.markdown("### 3. Your test plan")
+        with st.container(border=True):
+            st.markdown(st.session_state.plan_generated_output)
+        st.caption(
+            "Want to refine or ask follow-ups? Head over to the "
+            "**🧠 Multi-Agent Hub** — it's the conversational interface for all of this plus more."
+        )
+
+
 def show_planning_agent():
     """Planning Agent page — conversational test planning."""
     try:
@@ -1276,6 +1411,13 @@ def show_results():
 
 def show_insights():
     """Insights/Chat page."""
+    # In demo mode we deliberately skip the full insights page (which pulls in
+    # chromadb + vector_store for RAG) and show a curated, self-contained
+    # Best Practices experience instead. Avoids shipping chromadb on HF.
+    if DEMO_MODE:
+        _show_demo_insights()
+        return
+
     try:
         from pages.insights import render_insights
         render_insights()
@@ -1284,8 +1426,113 @@ def show_insights():
             from frontend.pages.insights import render_insights
             render_insights()
         except ImportError as e:
-            st.markdown("# 💬 Insights Chat")
-            st.warning(f"Insights Chat requires full dependencies: {e}")
+            st.markdown("# 💬 Best Practices")
+            st.warning(
+                f"Full Insights chat (vector-store RAG) requires `chromadb`, which isn't installed. "
+                f"Error: {e}"
+            )
+            st.info(
+                "You're running in local mode but missing a local-only dependency. "
+                "Run `pip install -r requirements-local.txt` to enable the full Insights chat. "
+                "Showing the demo Best Practices view below."
+            )
+            _show_demo_insights()
+
+
+def _show_demo_insights():
+    """Demo-mode Best Practices page — curated Q&A, no chromadb required."""
+    st.markdown("# 💡 Best Practices")
+    st.markdown(
+        "Curated insights from our analysis of 47 historical brand-lift tests. "
+        "For live Q&A over your own results, "
+        "[clone the repo](https://github.com/akshargupta84/ct-orchestrator) and run locally."
+    )
+
+    st.markdown("---")
+
+    # ── Top performance drivers (from the trained ensemble model) ─────────
+    st.markdown("### 📈 Top Performance Drivers")
+    st.markdown(
+        "Our ensemble model (Logistic Regression + Random Forest) was trained on "
+        "49 historical creatives. These are the features most predictive of passing a brand-lift study:"
+    )
+    drivers = [
+        ("🎯 Attention score", "Strongest single predictor. Creatives that sustain attention across the full duration pass 2.4x more often."),
+        ("🧠 Brand recall score", "Driven primarily by early logo presence and human eye contact."),
+        ("💬 Message clarity score", "Clear, single-message creatives outperform multi-message by ~30%."),
+        ("😀 Positive emotion", "Creatives with detected positive emotion show ~45% higher engagement."),
+        ("👤 Human presence >50%", "Human-in-frame ratio above 0.5 correlates with +15–20% attention lift."),
+    ]
+    for name, desc in drivers:
+        with st.container(border=True):
+            st.markdown(f"**{name}**")
+            st.caption(desc)
+
+    st.markdown("---")
+
+    # ── Budget rules summary ──────────────────────────────────────────────
+    st.markdown("### 📋 CT Budget Rules (v2.3)")
+    rule_col1, rule_col2, rule_col3 = st.columns(3)
+    with rule_col1:
+        with st.container(border=True):
+            st.markdown("**Tier 1 — <$5M**")
+            st.caption("Testing budget: up to 3% of media spend")
+            st.caption("Max 2 creatives per test")
+    with rule_col2:
+        with st.container(border=True):
+            st.markdown("**Tier 2 — $5M–$25M**")
+            st.caption("Testing budget: up to 4% of media spend")
+            st.caption("Max 4 creatives per test")
+    with rule_col3:
+        with st.container(border=True):
+            st.markdown("**Tier 3 — >$25M**")
+            st.caption("Testing budget: up to 5% of media spend")
+            st.caption("Max 6 creatives per test")
+    st.caption("Standard video test: ~$5,000  ·  Premium (long-form >45s): ~$7,500  ·  Multi-market: add 25%")
+
+    st.markdown("---")
+
+    # ── Common failure modes (from past-test retrospective) ───────────────
+    st.markdown("### ⚠️ Common Failure Modes")
+    failures = [
+        ("Logo after 8s", "Brand attribution collapses. 61% of creatives with late logos failed brand-recall lift."),
+        ("No human presence", "Attention score drops ~25 points on average. Highest single risk factor."),
+        ("No CTA in final 5s", "Intent-to-try lift rarely reaches significance without a late CTA."),
+        ("Neutral emotion throughout", "Emotional resonance <50 correlates with sub-threshold awareness lift."),
+        ("Multi-message creatives", "Clarity scores drop; recall splinters across messages."),
+    ]
+    for pattern, why in failures:
+        st.markdown(f"- **{pattern}** — {why}")
+
+    st.markdown("---")
+
+    # ── Curated Q&A (always-available in demo) ────────────────────────────
+    st.markdown("### 💬 Quick Answers")
+    with st.expander("What are the testing limits for a $10M campaign?"):
+        st.markdown(
+            "At $10M annual media spend, you're in **Tier 2**. Testing budget tops out at "
+            "**4% = $400K**, with a max of **4 creatives per test**. A typical test uses 2–3 "
+            "creatives at $5K each, leaving headroom for a second wave."
+        )
+    with st.expander("Which creatives performed best in past tests?"):
+        st.markdown(
+            "Across 47 historical tests, the top performers shared three traits: logo in first 3s, "
+            "human frame ratio >0.5, and a detectable CTA in the final 5 seconds. "
+            "**Summer_Hero_30s** and **Lifestyle_60s** in this demo are examples of that profile."
+        )
+    with st.expander("What's our overall pass rate across all campaigns?"):
+        st.markdown(
+            "Base pass rate across 47 historical tests: **35%**. With pre-screening using this "
+            "orchestrator (running only creatives predicted to pass), effective pass rate climbs to "
+            "~**70%**, saving an estimated $150K/year by avoiding sure-fail tests."
+        )
+    with st.expander("How should I structure a creative test?"):
+        st.markdown(
+            "1. Upload 2–6 creatives to the Multi-Agent Hub along with a media plan. "
+            "2. Let the Analysis Agent predict pass probability and diagnostic scores. "
+            "3. Drop anything below ~50% pass probability unless it's a strategic must-test. "
+            "4. Size the test based on your tier's budget cap (see CT Rules above)."
+        )
 
 
 def show_admin():

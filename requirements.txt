@@ -8,6 +8,7 @@ pydantic>=2.0.0
 # Data Processing
 pandas>=2.0.0
 numpy>=1.24.0
+openpyxl>=3.1.0  # Required by pandas.read_excel() for .xlsx media plan uploads
  
 # Frontend
 streamlit==1.55.0
